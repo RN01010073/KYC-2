@@ -63,7 +63,7 @@ def generate_pkce_pair() -> tuple[str, str]:
     return verifier, challenge
 
 
-def build_authorize_url(state: str, challenge: str, scope: str = "openid") -> str:
+def build_authorize_url(state: str, challenge: str, scope: str = "avs") -> str:
     require_config()
     params = {
         "response_type": "code",
