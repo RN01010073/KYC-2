@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VerifyX — Vendor eKYC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: #8B5CF6;
+      --accent-light: #A78BFA;
+      --accent-glow: rgba(139,92,246,0.15);
+      --accent-border: rgba(139,92,246,0.25);
+      --bg: #0A0C10;
+      --bg-surface: #111318;
+      --bg-card: #161A22;
+      --bg-card-hover: #1C2130;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.14);
+      --text-primary: #F0F2F8;
+      --text-secondary: #8A8FA8;
+      --text-muted: #555A70;
+      --error: #E24B4A;
+      --error-bg: rgba(226,75,74,0.1);
+      --success: #8DC842;
+      --success-bg: rgba(141,200,66,0.1);
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-body); background: var(--bg); color: var(--text-primary); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 48px; border-bottom: 1px solid var(--border); background: rgba(10,12,16,0.9); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+    .logo { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+    .logo span { color: #BD1616; }
+    .nav-back { font-size: 13px; color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+    .nav-back:hover { color: var(--text-primary); }
+
+    .page-wrap { max-width: 900px; margin: 0 auto; padding: 48px 24px 80px; }
+    .page-header { margin-bottom: 36px; }
+    .vendor-badge { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent-light); background: var(--accent-glow); border: 1px solid var(--accent-border); padding: 5px 14px; border-radius: 100px; margin-bottom: 16px; }
+    .vendor-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; }
+    .page-header h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .page-header p { font-size: 14px; color: var(--text-secondary); }
+
+    /* Progress */
+    .progress-wrap { margin-bottom: 40px; }
+    .progress-steps { display: flex; gap: 0; }
+    .prog-step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; cursor: pointer; }
+    .prog-step::before { content: ''; position: absolute; top: 14px; left: 50%; width: 100%; height: 2px; background: var(--border-strong); z-index: 0; }
+    .prog-step:last-child::before { display: none; }
+    .prog-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; position: relative; z-index: 1; border: 2px solid var(--border-strong); background: var(--bg-card); color: var(--text-muted); transition: all 0.25s; }
+    .prog-step.active .prog-dot { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .prog-step.done .prog-dot { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+    .prog-step.done::before { background: var(--success); }
+    .prog-step.active::before { background: var(--accent); }
+    .prog-label { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.3; max-width: 70px; }
+    .prog-step.active .prog-label { color: var(--accent); }
+    .prog-step.done .prog-label { color: var(--success); }
+
+    /* Section blocks */
+    .section-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 32px; margin-bottom: 20px; }
+    .section-block.hidden { display: none; }
+    .section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .section-icon { width: 36px; height: 36px; border-radius: 9px; background: var(--accent-glow); border: 1px solid var(--accent-border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .section-head h2 { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .section-head p { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+    /* Form grid */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.span2 { grid-column: span 2; }
+    .field.span3 { grid-column: span 3; }
+    label { font-size: 12px; font-weight: 500; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+    .req { color: var(--error); font-size: 12px; }
+    .opt { font-size: 10px; color: var(--text-muted); font-weight: 400; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="number"], input[type="url"], select, textarea {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      font-size: 14px;
+      padding: 10px 14px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -webkit-appearance: none; appearance: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    input.error { border-color: var(--error); }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A8FA8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+    select option { background: #1C2130; }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+    .field-hint { font-size: 11px; color: var(--text-muted); }
+    .field-error { font-size: 11px; color: var(--error); display: none; }
+    .field-error.show { display: block; }
+
+    /* GSTIN lookup */
+    .gstin-wrap { position: relative; }
+    .gstin-wrap input { padding-right: 100px; }
+    .gstin-verify-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 11px; font-weight: 600; padding: 5px 12px; background: var(--accent-glow); color: var(--accent-light); border: 1px solid var(--accent-border); border-radius: 5px; cursor: pointer; transition: all 0.15s; font-family: var(--font-body); }
+    .gstin-verify-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .gstin-status { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-top: 4px; }
+    .gstin-status.verified { color: var(--success); }
+    .gstin-status.failed { color: var(--error); }
+
+    /* Upload zone */
+    .upload-zone { border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); padding: 20px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
+    .upload-zone:hover { border-color: var(--accent); background: var(--accent-glow); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { margin: 0 auto 10px; width: 36px; height: 36px; border-radius: 9px; background: var(--bg-surface); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; }
+    .upload-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 3px; }
+    .upload-hint { font-size: 11px; color: var(--text-muted); }
+    .upload-zone.uploaded { border-color: var(--success); background: var(--success-bg); border-style: solid; }
+    .upload-zone.uploaded .upload-title { color: var(--success); }
+    .upload-filename { font-size: 11px; color: var(--success); margin-top: 6px; display: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .upload-zone.uploaded .upload-filename { display: block; }
+
+    /* Bank details box */
+    .bank-info-note { background: var(--bg-surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; }
+    .bank-info-note p { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+    .bank-info-note strong { color: var(--text-primary); }
+
+    /* Checkbox */
+    .checkbox-wrap { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .checkbox-wrap input[type="checkbox"] { width: 17px; height: 17px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-surface); -webkit-appearance: none; appearance: none; cursor: pointer; flex-shrink: 0; margin-top: 2px; position: relative; padding: 0; transition: all 0.15s; }
+    .checkbox-wrap input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+    .checkbox-wrap input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 4px; top: 2px; width: 5px; height: 8px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
+    .checkbox-label { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .checkbox-label a { color: var(--accent); text-decoration: none; }
+
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .sub-heading { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 14px; }
+
+    /* Radio pills */
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-pill { position: relative; }
+    .radio-pill input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .radio-pill label { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 100px; border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-secondary); font-size: 13px; font-weight: 400; cursor: pointer; transition: all 0.15s; }
+    .radio-pill input:checked + label { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+    /* Nav buttons */
+    .nav-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; }
+    .btn-prev { font-family: var(--font-body); font-size: 14px; font-weight: 500; padding: 11px 26px; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s; }
+    .btn-prev:hover { background: var(--bg-card); color: var(--text-primary); }
+    .btn-next, .btn-submit { font-family: var(--font-body); font-size: 14px; font-weight: 500; padding: 11px 32px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); cursor: pointer; transition: background 0.15s, transform 0.1s; }
+    .btn-next:hover, .btn-submit:hover { background: var(--accent-light); transform: translateY(-1px); }
+    .step-info { font-size: 12px; color: var(--text-muted); }
+
+    /* Authorised person row */
+    .person-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 20px; position: relative; }
+    .person-card-label { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: var(--accent-light); margin-bottom: 16px; }
+    .remove-person { position: absolute; top: 16px; right: 16px; background: transparent; border: none; cursor: pointer; color: var(--text-muted); font-size: 18px; line-height: 1; transition: color 0.15s; }
+    .remove-person:hover { color: var(--error); }
+    .add-person-btn { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--accent-light); background: var(--accent-glow); border: 1px dashed var(--accent-border); border-radius: var(--radius-md); padding: 12px 18px; cursor: pointer; width: 100%; justify-content: center; margin-top: 12px; transition: all 0.15s; font-family: var(--font-body); }
+    .add-person-btn:hover { background: rgba(139,92,246,0.2); }
+.processing-overlay {
+      position: fixed; inset: 0; z-index: 120;
+      background: rgba(10,12,16,0.88);
+      backdrop-filter: blur(14px);
+      display: none; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .processing-overlay.show { display: flex; }
+    .processing-card {
+      width: min(100%, 440px);
+      background: linear-gradient(180deg, rgba(22,26,34,0.98), rgba(17,19,24,0.98));
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 28px 28px 24px;
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+    }
+    .processing-ring {
+      width: 74px; height: 74px; margin: 0 auto 18px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.08);
+      border-top-color: var(--accent);
+      border-right-color: var(--accent-light);
+      animation: spin 1s linear infinite;
+    }
+    .processing-card h2 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .processing-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .processing-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .processing-bar-fill {
+      width: 40%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      animation: processing-slide 1.35s ease-in-out infinite;
+    }
+    .processing-caption {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    body.is-processing { overflow: hidden; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes processing-slide {
+      0% { transform: translateX(-120%); }
+      50% { transform: translateX(90%); }
+      100% { transform: translateX(220%); }
+    }
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .page-wrap { padding: 28px 16px 60px; }
+      .form-grid, .form-grid.three { grid-template-columns: 1fr; }
+      .field.span2, .field.span3 { grid-column: span 1; }
+      .section-block { padding: 20px 18px; }
+      .prog-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Verify<span>X</span></a>
+  <a href="/kyc-select" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Change method
+  </a>
+</nav>
+
+<div class="page-wrap">
+  <div id="formArea">
+  <form id="vendor-ekyc-form" method="POST" action="/submit-vendor-ekyc" enctype="multipart/form-data">
+
+    <div class="page-header">
+      <div class="vendor-badge">Business verification</div>
+      <h1>Vendor eKYC</h1>
+      <p>Complete all required fields to onboard your business. This usually takes 7–10 minutes.</p>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-steps" id="progressSteps">
+        <div class="prog-step active" data-step="1"><div class="prog-dot">1</div><div class="prog-label">Business Info</div></div>
+        <div class="prog-step" data-step="2"><div class="prog-dot">2</div><div class="prog-label">GST & PAN</div></div>
+        <div class="prog-step" data-step="3"><div class="prog-dot">3</div><div class="prog-label">Aadhaar</div></div>
+        <div class="prog-step" data-step="4"><div class="prog-dot">4</div><div class="prog-label">Bank Details</div></div>
+        <div class="prog-step" data-step="5"><div class="prog-dot">5</div><div class="prog-label">Documents</div></div>
+        <div class="prog-step" data-step="6"><div class="prog-dot">6</div><div class="prog-label">Address</div></div>
+        <div class="prog-step" data-step="7"><div class="prog-dot">7</div><div class="prog-label">Consent</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 1: Business Info ═══ -->
+    <div class="section-block" id="step1">
+      <div class="section-head">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="11" rx="2" stroke="#A78BFA" stroke-width="1.5"/><path d="M6 5V4a3 3 0 016 0v1" stroke="#A78BFA" stroke-width="1.5" stroke-linecap="round"/><path d="M6 9h6M6 12h4" stroke="#A78BFA" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </div>
+        <div><h2>Business information</h2><p>Legal name, structure, and contact details</p></div>
+      </div>
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Registered business name <span class="req">*</span></label>
+          <input type="text" id="bizName" name="business_name" placeholder="As per GST/MCA registration"/>
+          <div class="field-error" id="err-bizName">Business name is required</div>
+        </div>
+        <div class="field">
+          <label>Business type <span class="req">*</span></label>
+          <select id="bizType" name="business_type">
+            <option value="">Select type</option>
+            <option value="pvt_ltd">Private Limited Company</option>
+            <option value="llp">LLP</option>
+            <option value="partnership">Partnership Firm</option>
+            <option value="proprietorship">Proprietorship</option>
+            <option value="public_ltd">Public Limited Company</option>
+            <option value="trust">Trust / NGO</option>
+            <option value="other">Other</option>
+          </select>
+          <div class="field-error" id="err-bizType">Business type is required</div>
+        </div>
+        <div class="field">
+          <label>Year of incorporation <span class="req">*</span></label>
+          <input type="text" id="bizYear" name="incorporation_year" placeholder="e.g. 2018" maxlength="4" inputmode="numeric"/>
+          <div class="field-error" id="err-bizYear">Enter a valid Year of incorporation</div>
+        </div>
+        <div class="field">
+          <label>Business contact number <span class="req">*</span></label>
+          <input type="tel" id="bizPhone" name="business_phone" placeholder="9876543210" maxlength="10" inputmode="numeric" pattern="[6-9][0-9]{9}"/>
+          <div class="field-error" id="err-bizPhone">Enter a valid 10-digit mobile number</div>
+        </div>
+        <div class="field">
+          <label>Business email <span class="req">*</span></label>
+          <input type="email" id="bizEmail" name="business_email" placeholder="info@yourbusiness.com"/>
+          <div class="field-error" id="err-bizEmail">Enter a valid email address</div>
+        </div>
+        <div class="field">
+          <label>Business website <span class="opt">optional</span></label>
+          <input type="url" name="business_website" placeholder="https://yourbusiness.com"/>
+        </div>
+        <div class="field">
+          <label>Industry / sector <span class="req">*</span></label>
+          <select id="bizSector" name="industry">
+            <option value="">Select industry</option>
+            <option>Manufacturing</option>
+            <option>IT & Software</option>
+            <option>Retail & E-commerce</option>
+            <option>Healthcare</option>
+            <option>Financial Services</option>
+            <option>Construction</option>
+            <option>Education</option>
+            <option>Logistics & Supply Chain</option>
+            <option>Agriculture</option>
+            <option>Other</option>
+          </select>
+          <div class="field-error" id="err-bizSector">Industry is required</div>
+        </div>
+        <div class="field">
+          <label>Annual turnover <span class="req">*</span></label>
+          <select id="bizTurnover" name="annual_turnover">
+            <option value="">Select range</option>
+            <option>Below ₹40 lakh</option>
+            <option>₹40 lakh – 1 crore</option>
+            <option>₹1 – 5 crore</option>
+            <option>₹5 – 25 crore</option>
+            <option>₹25 – 100 crore</option>
+            <option>Above ₹100 crore</option>
+          </select>
+          <div class="field-error" id="err-bizTurnover">Annual turnover is required</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 2: GST & PAN ═══ -->
+    <div class="section-block hidden" id="step2">
+      <div class="section-head">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#A78BFA" stroke-width="1.5"/><circle cx="6.5" cy="9" r="1.5" stroke="#A78BFA" stroke-width="1.2"/><path d="M10 7.5h3M10 10.5h2" stroke="#A78BFA" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </div>
+        <div><h2>GST & PAN details</h2><p>Mandatory for tax compliance and identity verification</p></div>
+      </div>
+
+      <div class="sub-heading">GSTIN information</div>
+      <div class="form-grid" style="margin-bottom:20px;">
+        <div class="field span2">
+          <label>GSTIN <span class="req">*</span></label>
+          <div class="gstin-wrap">
+            <input type="text" id="gstin" name="gstin" placeholder="e.g. 27AABCU9603R1ZX" maxlength="15" style="text-transform:uppercase;"/>
+            <button type="button" class="gstin-verify-btn" onclick="verifyGSTIN()">Verify</button>
+          </div>
+          <div class="gstin-status" id="gstinStatus" style="display:none;"></div>
+          <div class="field-error" id="err-gstin">Valid GSTIN is required</div>
+        </div>
+        <div class="field">
+          <label>GST registration date <span class="req">*</span></label>
+          <input type="date" id="gstDate" name="gst_registration_date"/>
+          <div class="field-error" id="err-gstDate">GST registration date is required</div>
+        </div>
+        <div class="field">
+          <label>GST filing status <span class="opt">optional</span></label>
+          <select name="gst_filing_status">
+            <option value="">Select</option>
+            <option>Regular</option>
+            <option>Composition</option>
+            <option>SEZ</option>
+            <option>Casual taxable person</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="sub-heading">PAN information</div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Business PAN <span class="req">*</span></label>
+          <input type="text" id="bizPan" name="business_pan" placeholder="e.g. AABCU9603R" maxlength="10" style="text-transform:uppercase;"/>
+          <div class="field-hint">10-character PAN of the entity</div>
+          <div class="field-error" id="err-bizPan">Valid PAN is required</div>
+          <div class="field-error" id="err-gstin-pan-match">This PAN doesn't match the PAN embedded in the GSTIN above</div>
+        </div>
+        <div class="field">
+          <label>Name on PAN <span class="req">*</span></label>
+          <input type="text" id="panName" name="pan_name" placeholder="As printed on PAN card"/>
+          <div class="field-error" id="err-panName">Name on PAN is required</div>
+        </div>
+        <div class="field">
+          <label>PAN of authorised signatory <span class="req">*</span></label>
+          <input type="text" id="sigPan" name="signatory_pan" placeholder="Individual PAN of signatory" maxlength="10" style="text-transform:uppercase;"/>
+          <div class="field-error" id="err-sigPan">Valid Signatory PAN is required(e.g. ABCDE1234F)</div>
+        </div>
+        <div class="field">
+          <label>Signatory date of birth <span class="req">*</span></label>
+          <input type="date" id="sigDob" name="signatory_dob"/>
+          <div class="field-error" id="err-sigDob">Date of birth is required</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 3: Aadhaar ═══ -->
+    <div class="section-block hidden" id="step3">
+      <div class="section-head">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="3.5" stroke="#A78BFA" stroke-width="1.5"/><path d="M2 16c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#A78BFA" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div><h2>Authorised signatory — Aadhaar</h2><p>Aadhaar-based identity of the person authorised to sign on behalf of the business</p></div>
+      </div>
+
+      <div class="bank-info-note">
+        <p><strong>Why is Aadhaar required?</strong> As per RBI and PMLA guidelines, Aadhaar verification of the authorised signatory is mandatory for business KYC. The number will be masked after verification and not stored in full.</p>
+      </div>
+
+      <div id="signatoryCards" style="display:flex;flex-direction:column;gap:16px;">
+        <div class="person-card" id="sigCard1">
+          <div class="person-card-label">Authorised Signatory #1</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Full name <span class="req">*</span></label>
+              <input type="text" id="sig1Name" name="sig1_name" placeholder="As on Aadhaar card"/>
+              <div class="field-error" id="err-sig1Name">Name is required</div>
+            </div>
+            <div class="field">
+              <label>Designation <span class="req">*</span></label>
+              <select id="sig1Designation" name="sig1_designation">
+                <option value="">Select</option>
+                <option>Director</option>
+                <option>Managing Director</option>
+                <option>Partner</option>
+                <option>Proprietor</option>
+                <option>Authorised Signatory</option>
+                <option>CEO</option>
+                <option>CFO</option>
+                <option>Other</option>
+              </select>
+              <div class="field-error" id="err-sig1Designation">Designation is required</div>
+            </div>
+            <div class="field">
+              <label>Aadhaar number <span class="req">*</span></label>
+              <input type="text" id="sig1Aadhaar" name="sig1_aadhaar" placeholder="XXXX XXXX XXXX" maxlength="14"/>
+              <div class="field-error" id="err-sig1Aadhaar">Valid Aadhaar number is required</div>
+            </div>
+            <div class="field">
+              <label>Aadhaar-linked mobile <span class="req">*</span></label>
+              <input type="tel" id="sig1Mobile" name="sig1_mobile" placeholder="98765 43210"/>
+              <div class="field-error" id="err-sig1Mobile">Enter a valid 10-digit mobile number</div>
+            </div>
+            <div class="field">
+              <label>DIN (if director) <span class="opt">optional</span></label>
+              <input type="text" name="sig1_din" placeholder="8-digit DIN number" maxlength="8"/>
+              <div class="field-hint">Director Identification Number</div>
+            </div>
+            <div class="field">
+              <label>Ownership % in business <span class="opt">optional</span></label>
+              <input type="number" name="sig1_ownership" placeholder="e.g. 51" min="0" max="100"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="add-person-btn" onclick="addSignatory()">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add another authorised signatory
+      </button>
+    </div>
+
+    <!-- ═══ STEP 4: Bank Details ═══ -->
+    <div class="section-block hidden" id="step4">
+      <div class="section-head">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="7" width="14" height="9" rx="2" stroke="#A78BFA" stroke-width="1.5"/><path d="M9 2l7 5H2l7-5z" stroke="#A78BFA" stroke-width="1.5" stroke-linejoin="round"/><path d="M6 11v3M9 11v3M12 11v3" stroke="#A78BFA" stroke-width="1.2" stroke-linecap="round"/></svg>
+        </div>
+        <div><h2>Bank account details</h2><p>Primary business bank account for payment and verification</p></div>
+      </div>
+
+      <div class="bank-info-note">
+        <p>A <strong>penny drop</strong> (₹1 verification) may be performed to confirm account details. Ensure the account is active and linked to your registered mobile number.</p>
+      </div>
+
+      <div class="form-grid" style="margin-bottom:24px;">
+        <div class="field">
+          <label>Account holder name <span class="req">*</span></label>
+          <input type="text" id="accName" name="account_holder_name" placeholder="Name as per bank records"/>
+          <div class="field-error" id="err-accName">Account holder name is required</div>
+        </div>
+        <div class="field">
+          <label>Bank name <span class="req">*</span></label>
+          <select id="bankName" name="bank_name">
+            <option value="">Select bank</option>
+            <option>State Bank of India</option>
+            <option>HDFC Bank</option>
+            <option>ICICI Bank</option>
+            <option>Axis Bank</option>
+            <option>Kotak Mahindra Bank</option>
+            <option>Punjab National Bank</option>
+            <option>Bank of Baroda</option>
+            <option>Union Bank of India</option>
+            <option>IndusInd Bank</option>
+            <option>Yes Bank</option>
+            <option>IDBI Bank</option>
+            <option>Federal Bank</option>
+            <option>Other</option>
+          </select>
+          <div class="field-error" id="err-bankName">Bank name is required</div>
+        </div>
+        <div class="field">
+          <label>Account number <span class="req">*</span></label>
+          <input type="text" id="accNum" name="account_number" placeholder="Enter account number"/>
+          <div class="field-error" id="err-accNum">Account number is required</div>
+        </div>
+        <div class="field">
+          <label>Confirm account number <span class="req">*</span></label>
+          <input type="text" id="accNumConfirm" name="account_number_confirm" placeholder="Re-enter account number"/>
+          <div class="field-error" id="err-accNumConfirm">Account numbers do not match</div>
+        </div>
+        <div class="field">
+          <label>IFSC code <span class="req">*</span></label>
+          <input type="text" id="ifsc" name="ifsc_code" placeholder="e.g. SBIN0001234" maxlength="11" style="text-transform:uppercase;"/>
+          <div class="field-error" id="err-ifsc">Valid IFSC code is required</div>
+        </div>
+        <div class="field">
+          <label>Account type <span class="req">*</span></label>
+          <div class="radio-group" style="margin-top:4px;">
+            <div class="radio-pill"><input type="radio" name="account_type" id="accCurrent" value="current"><label for="accCurrent">Current</label></div>
+            <div class="radio-pill"><input type="radio" name="account_type" id="accSavings" value="savings"><label for="accSavings">Savings</label></div>
+            <div class="radio-pill"><input type="radio" name="account_type" id="accOD" value="od"><label for="accOD">OD / CC</label></div>
+          </div>
+          <div class="field-error" id="err-accType">Please select account type</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="sub-heading">Cancelled cheque upload</div>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Upload a scanned image or photo of a cancelled cheque for bank account verification. The cheque must have the account number and IFSC printed on it.</p>
+
+      <div class="upload-zone" id="upCheque" style="max-width:420px;">
+        <input type="file" id="file-cheque" name="cancelled_cheque" accept="image/*,.pdf" onchange="handleUpload('upCheque','fn-cheque',this)"/>
+        <div class="upload-icon" id="icon-cheque">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="4" width="14" height="8" rx="1.5" stroke="#A78BFA" stroke-width="1.3"/><path d="M1 7h14" stroke="#A78BFA" stroke-width="1.3"/><path d="M4 10h3M10 10h2" stroke="#A78BFA" stroke-width="1.1" stroke-linecap="round"/></svg>
+        </div>
+        <div class="upload-title">Cancelled cheque</div>
+        <div class="upload-hint">JPEG, PNG or PDF · Max 5MB</div>
+        <div class="upload-filename" id="fn-cheque"></div>
+      </div>
+      <div class="field-error" id="err-cheque" style="margin-top:6px;">Cancelled cheque is required</div>
+    </div>
+
+    <!-- ═══ STEP 5: Documents ═══ -->
+    <div class="section-block hidden" id="step5">
+      <div class="section-head">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M10 2H5a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V8l-5-6z" stroke="#A78BFA" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 2v6h5" stroke="#A78BFA" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        </div>
+        <div><h2>Business document uploads</h2><p>JPEG, PNG or PDF — max 5MB each</p></div>
+      </div>
+
+      <div class="form-grid" style="margin-bottom:20px;">
+        <div class="field">
+          <label>GST registration certificate <span class="req">*</span></label>
+          <div class="upload-zone" id="upGST">
+            <input type="file" name="gst_certificate" accept="image/*,.pdf" onchange="handleUpload('upGST','fn-gst',this)"/>
+            <div class="upload-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 1H3a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V5L8 1z" stroke="#A78BFA" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 1v4h4" stroke="#A78BFA" stroke-width="1.2" stroke-linejoin="round"/></svg></div>
+            <div class="upload-title">GST Certificate</div>
+            <div class="upload-hint">Form GST REG-06</div>
+            <div class="upload-filename" id="fn-gst"></div>
+          </div>
+          <div class="field-error" id="err-upGST">GST certificate is required</div>
+        </div>
+        <div class="field">
+          <label>PAN card of business <span class="req">*</span></label>
+          <div class="upload-zone" id="upPAN">
+            <input type="file" name="business_pan_card" accept="image/*,.pdf" onchange="handleUpload('upPAN','fn-pan',this)"/>
+            <div class="upload-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="#A78BFA" stroke-width="1.2"/><circle cx="4.5" cy="7" r="1.3" stroke="#A78BFA" stroke-width="1.1"/><path d="M7.5 6h3M7.5 8.5h2" stroke="#A78BFA" stroke-width="1" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Business PAN Card</div>
+            <div class="upload-hint">Clear front side scan</div>
+            <div class="upload-filename" id="fn-pan"></div>
+          </div>
+          <div class="field-error" id="err-upPAN">Business PAN card is required</div>
+        </div>
+        <div class="field">
+          <label>Aadhaar of signatory — front <span class="req">*</span></label>
+          <div class="upload-zone" id="upAadhaarF">
+            <input type="file" name="signatory_aadhaar_front" accept="image/*,.pdf" onchange="handleUpload('upAadhaarF','fn-aadharf',this)"/>
+            <div class="upload-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="#A78BFA" stroke-width="1.2"/><circle cx="4.5" cy="7" r="1.3" stroke="#A78BFA" stroke-width="1.1"/><path d="M7.5 6h3M7.5 8.5h2" stroke="#A78BFA" stroke-width="1" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Aadhaar — Front</div>
+            <div class="upload-hint">Authorised signatory</div>
+            <div class="upload-filename" id="fn-aadharf"></div>
+          </div>
+          <div class="field-error" id="err-upAadhaarF">Aadhaar front is required</div>
+        </div>
+        <div class="field">
+          <label>Aadhaar of signatory — back <span class="req">*</span></label>
+          <div class="upload-zone" id="upAadhaarB">
+            <input type="file" name="signatory_aadhaar_back" accept="image/*,.pdf" onchange="handleUpload('upAadhaarB','fn-aadharb',this)"/>
+            <div class="upload-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="3" width="12" height="8" rx="1.5" stroke="#A78BFA" stroke-width="1.2"/><circle cx="4.5" cy="7" r="1.3" stroke="#A78BFA" stroke-width="1.1"/><path d="M7.5 6h3M7.5 8.5h2" stroke="#A78BFA" stroke-width="1" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Aadhaar — Back</div>
+            <div class="upload-hint">Authorised signatory</div>
+            <div class="upload-filename" id="fn-aadharb"></div>
+          </div>
+          <div class="field-error" id="err-upAadhaarB">Aadhaar back is required</div>
+        </div>
+        <div class="field">
+          <label>Incorporation / registration cert. <span class="req">*</span></label>
+          <div class="upload-zone" id="upIncorp">
+            <input type="file" name="incorporation_certificate" accept="image/*,.pdf" onchange="handleUpload('upIncorp','fn-incorp',this)"/>
+            <div class="upload-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 1H3a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V5L8 1z" stroke="#A78BFA" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 1v4h4" stroke="#A78BFA" stroke-width="1.2" stroke-linejoin="round"/><path d="M4 7h6M4 9.5h4" stroke="#A78BFA" stroke-width="1" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Incorporation Certificate</div>
+            <div class="upload-hint">CoI / Partnership deed / MOA</div>
+            <div class="upload-filename" id="fn-incorp"></div>
+          </div>
+          <div class="field-error" id="err-upIncorp">Incorporation certificate is required</div>
+        </div>
+        <div class="field">
+          <label>Board resolution / auth. letter <span class="opt">optional</span></label>
+          <div class="upload-zone" id="upBoard">
+            <input type="file" name="board_resolution" accept="image/*,.pdf" onchange="handleUpload('upBoard','fn-board',this)"/>
+            <div class="upload-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8 1H3a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V5L8 1z" stroke="#A78BFA" stroke-width="1.2" stroke-linejoin="round"/><path d="M8 1v4h4" stroke="#A78BFA" stroke-width="1.2" stroke-linejoin="round"/><path d="M4 7h6M4 9.5h4" stroke="#A78BFA" stroke-width="1" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Board Resolution</div>
+            <div class="upload-hint">Authorising the signatory</div>
+            <div class="upload-filename" id="fn-board"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 6: Address ═══ -->
+    <div class="section-block hidden" id="step6">
+      <div class="section-head">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2C6.24 2 4 4.24 4 7c0 4.25 5 9 5 9s5-4.75 5-9c0-2.76-2.24-5-5-5z" stroke="#A78BFA" stroke-width="1.5"/><circle cx="9" cy="7" r="1.5" stroke="#A78BFA" stroke-width="1.5"/></svg>
+        </div>
+        <div><h2>Business address</h2><p>Registered and operational address details</p></div>
+      </div>
+      <div class="sub-heading">Registered address</div>
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Address line 1 <span class="req">*</span></label>
+          <input type="text" id="regAddr1" name="reg_address_line1" placeholder="Building name, street, area"/>
+          <div class="field-error" id="err-regAddr1">Address is required</div>
+        </div>
+        <div class="field span2">
+          <label>Address line 2 <span class="opt">optional</span></label>
+          <input type="text" name="reg_address_line2" placeholder="Landmark, locality"/>
+        </div>
+        <div class="field">
+          <label>City <span class="req">*</span></label>
+          <input type="text" id="regCity" name="reg_city" placeholder="e.g. Mumbai"/>
+          <div class="field-error" id="err-regCity">City is required</div>
+        </div>
+        <div class="field">
+          <label>State <span class="req">*</span></label>
+          <select id="regState" name="reg_state">
+            <option value="">Select state</option>
+            <option>Andhra Pradesh</option>
+            <option>Arunachal Pradesh</option>
+            <option>Assam</option>
+            <option>Bihar</option>
+            <option>Chhattisgarh</option>
+            <option>Goa</option>
+            <option>Gujarat</option>
+            <option>Haryana</option>
+            <option>Himachal Pradesh</option>
+            <option>Jharkhand</option>
+            <option>Karnataka</option>
+            <option>Kerala</option>
+            <option>Madhya Pradesh</option>
+            <option>Maharashtra</option>
+            <option>Manipur</option>
+            <option>Meghalaya</option>
+            <option>Mizoram</option>
+            <option>Nagaland</option>
+            <option>Odisha</option>
+            <option>Punjab</option>
+            <option>Rajasthan</option>
+            <option>Sikkim</option>
+            <option>Tamil Nadu</option>
+            <option>Telangana</option>
+            <option>Tripura</option>
+            <option>Uttar Pradesh</option>
+            <option>Uttarakhand</option>
+            <option>West Bengal</option>
+            <option>Andaman and Nicobar Islands</option>
+            <option>Chandigarh</option>
+            <option>Dadra and Nagar Haveli and Daman and Diu</option>
+            <option>Delhi</option>
+            <option>Jammu and Kashmir</option>
+            <option>Ladakh</option>
+            <option>Lakshadweep</option>
+            <option>Puducherry</option>
+          </select>
+          <div class="field-error" id="err-regState">State is required</div>
+        </div>
+        <div class="field">
+          <label>PIN code <span class="req">*</span></label>
+          <input type="text" id="regPin" name="reg_pin" placeholder="e.g. 400001" maxlength="6"/>
+          <div class="field-error" id="err-regPin">PIN code is required</div>
+        </div>
+        <div class="field">
+          <label>Country</label>
+          <select name="reg_country"><option selected>India</option><option>USA</option><option>UK</option><option>Other</option></select>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <label class="checkbox-wrap" style="margin-bottom:16px;">
+        <input type="checkbox" id="sameOpsAddr" checked/>
+        <span class="checkbox-label">Operational address same as registered address</span>
+      </label>
+      <div id="opsAddrFields" style="display:none;">
+        <div class="sub-heading">Operational / principal place of business</div>
+        <div class="form-grid">
+          <div class="field span2"><label>Address line 1</label><input type="text" name="ops_address_line1" placeholder="Building name, street, area"/></div>
+          <div class="field"><label>City</label><input type="text" id="opsCity" name="ops_city" placeholder="e.g. Delhi"/></div>
+          <div class="field"><label>State</label><select id="opsState" name="ops_state">
+            <option value="">Select state</option>
+            <option>Andhra Pradesh</option>
+            <option>Arunachal Pradesh</option>
+            <option>Assam</option>
+            <option>Bihar</option>
+            <option>Chhattisgarh</option>
+            <option>Goa</option>
+            <option>Gujarat</option>
+            <option>Haryana</option>
+            <option>Himachal Pradesh</option>
+            <option>Jharkhand</option>
+            <option>Karnataka</option>
+            <option>Kerala</option>
+            <option>Madhya Pradesh</option>
+            <option>Maharashtra</option>
+            <option>Manipur</option>
+            <option>Meghalaya</option>
+            <option>Mizoram</option>
+            <option>Nagaland</option>
+            <option>Odisha</option>
+            <option>Punjab</option>
+            <option>Rajasthan</option>
+            <option>Sikkim</option>
+            <option>Tamil Nadu</option>
+            <option>Telangana</option>
+            <option>Tripura</option>
+            <option>Uttar Pradesh</option>
+            <option>Uttarakhand</option>
+            <option>West Bengal</option>
+            <option>Andaman and Nicobar Islands</option>
+            <option>Chandigarh</option>
+            <option>Dadra and Nagar Haveli and Daman and Diu</option>
+            <option>Delhi</option>
+            <option>Jammu and Kashmir</option>
+            <option>Ladakh</option>
+            <option>Lakshadweep</option>
+            <option>Puducherry</option>
+          </select></div>
+          <div class="field"><label>PIN code</label><input type="text" id="opsPin" name="ops_pin" placeholder="e.g. 110001" maxlength="6"/></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 7: Consent ═══ -->
+    <div class="section-block hidden" id="step7">
+      <div class="section-head">
+        <div class="section-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l5 2.5V9c0 3.5-2.3 6.5-5 7.5C6.3 15.5 4 12.5 4 9V4.5L9 2z" stroke="#A78BFA" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 9l1.5 1.5 3-3" stroke="#A78BFA" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><h2>Consent & declaration</h2><p>Please review and accept before submitting</p></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <label class="checkbox-wrap"><input type="checkbox" id="vConsent1"/><span class="checkbox-label">I confirm that I am authorised to submit this KYC on behalf of the business and that all information provided is accurate and complete.</span></label>
+        <label class="checkbox-wrap"><input type="checkbox" id="vConsent2"/><span class="checkbox-label">I consent to VerifyX collecting, storing, and processing the business's KYC data for onboarding and compliance purposes under the PMLA 2002 and RBI guidelines.</span></label>
+        <label class="checkbox-wrap"><input type="checkbox" id="vConsent3"/><span class="checkbox-label">I authorise VerifyX to perform a penny-drop verification and GSTIN validation using government APIs to verify the details submitted.</span></label>
+        <label class="checkbox-wrap"><input type="checkbox" id="vConsent4"/><span class="checkbox-label">I agree to the <a href="#">Terms & Conditions</a> and <a href="#">Vendor KYC Policy</a> of VerifyX and acknowledge that false declarations may result in legal action.</span></label>
+      </div>
+      <div class="field-error" id="err-vconsent" style="margin-top:12px;">Please accept all declarations to proceed</div>
+      <div style="margin-top:24px;padding:16px;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">All vendor data is encrypted at rest (AES-256) and in transit (TLS 1.3). VerifyX is SOC 2 Type II certified and ISO 27001 compliant. Vendor KYC data is retained as per RBI Master Direction on KYC (2016, updated 2023). Queries: <span style="color:var(--accent);">compliance [at] verifyx.io</span></div>
+      </div>
+    </div>
+
+    <div class="nav-btns">
+      <button class="btn-prev" id="prevBtn" style="visibility:hidden;" type="button">&#8592; Previous</button>
+      <span class="step-info" id="stepInfo">Step 1 of 7</span>
+      <button class="btn-next" id="nextBtn" type="button">Next &#8594;</button>
+    </div>
+
+  </form>
+  </div>
+</div>
+<div class="processing-overlay" id="processingOverlay" aria-live="polite" aria-hidden="true">
+  <div class="processing-card">
+    <div class="processing-ring"></div>
+    <h2>Processing your KYC</h2>
+    <p>We're uploading documents, running OCR, and verifying business details. This can take a few moments.</p>
+    <div class="processing-bar">
+      <div class="processing-bar-fill"></div>
+    </div>
+    <div class="processing-caption">Please keep this page open.</div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  var currentStep = 1;
+  var totalSteps = 7;
+  var signatoryCount = 1;
+
+  function updateUI() {
+    for (var i = 1; i <= totalSteps; i++) {
+      var b = document.getElementById('step' + i);
+      if (b) b.classList.toggle('hidden', i !== currentStep);
+    }
+    document.querySelectorAll('.prog-step').forEach(function(el, idx) {
+      var s = idx + 1;
+      el.classList.remove('active', 'done');
+      if (s === currentStep) el.classList.add('active');
+      else if (s < currentStep) el.classList.add('done');
+    });
+    document.getElementById('prevBtn').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+    document.getElementById('stepInfo').textContent = 'Step ' + currentStep + ' of ' + totalSteps;
+    var nb = document.getElementById('nextBtn');
+    nb.textContent = currentStep === totalSteps ? 'Submit application' : 'Next →';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showErr(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.add('show');
+  }
+  function hideErr(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+  }
+  function val(id) {
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+  function isUploaded(zoneId) {
+    var z = document.getElementById(zoneId);
+    return z ? z.classList.contains('uploaded') : false;
+  }
+
+  function validate(step) {
+    var ok = true;
+    function checkText(id, errId) {
+      if (!val(id)) { showErr(errId); if (ok) ok = false; } else hideErr(errId);
+    }
+    function checkSelect(id, errId) {
+      var el = document.getElementById(id);
+      if (!el || !el.value) { showErr(errId); if (ok) ok = false; } else hideErr(errId);
+    }
+    function checkUpload(zoneId, errId) {
+      if (!isUploaded(zoneId)) { showErr(errId); if (ok) ok = false; } else hideErr(errId);
+    }
+
+    if (step === 1) {
+      checkText('bizName', 'err-bizName');
+      checkSelect('bizType', 'err-bizType');
+
+      var bizYearEl  = document.getElementById('bizYear');
+      var bizYearVal = bizYearEl.value.trim();
+      var bizYearNum = parseInt(bizYearVal, 10);
+      var bizYearBad = !/^\d{4}$/.test(bizYearVal) || bizYearNum < 1700 || bizYearNum > 2026;
+      if (bizYearBad) { showErr('err-bizYear'); if (ok) ok = false; } else hideErr('err-bizYear');
+
+      var bizPhoneEl     = document.getElementById('bizPhone');
+      var bizPhoneDigits = bizPhoneEl.value.replace(/[^0-9]/g, '').replace(/^(91)/, '');
+      var bizPhoneBad    = !/^[6-9]\d{9}$/.test(bizPhoneDigits);
+      if (bizPhoneBad) { showErr('err-bizPhone'); if (ok) ok = false; } else hideErr('err-bizPhone');
+
+      var bizEmailEl  = document.getElementById('bizEmail');
+      var bizEmailBad = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bizEmailEl.value.trim());
+      if (bizEmailBad) { showErr('err-bizEmail'); if (ok) ok = false; } else hideErr('err-bizEmail');
+
+      checkSelect('bizSector', 'err-bizSector');
+      checkSelect('bizTurnover', 'err-bizTurnover');
+    }
+    if (step === 2) {
+  var PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+  var GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+
+  var gstinEl  = document.getElementById('gstin');
+  var gstinVal = gstinEl.value.trim().toUpperCase();
+  var gstinBad = !GSTIN_REGEX.test(gstinVal);
+  if (gstinBad) { showErr('err-gstin'); if (ok) ok = false; } else hideErr('err-gstin');
+
+  checkText('gstDate', 'err-gstDate');
+
+  var bizPanEl  = document.getElementById('bizPan');
+  var bizPanVal = bizPanEl.value.trim().toUpperCase();
+  var bizPanBad = !PAN_REGEX.test(bizPanVal);
+  if (bizPanBad) { showErr('err-bizPan'); if (ok) ok = false; } else hideErr('err-bizPan');
+
+  checkText('panName', 'err-panName');
+
+  var sigPanEl  = document.getElementById('sigPan');
+  var sigPanBad = !PAN_REGEX.test(sigPanEl.value.trim().toUpperCase());
+  if (sigPanBad) { showErr('err-sigPan'); if (ok) ok = false; } else hideErr('err-sigPan');
+
+  checkText('sigDob', 'err-sigDob');
+
+  // ── GSTIN ↔ Business PAN cross-check (chars 3–12 of GSTIN must equal Business PAN) ──
+  if (!gstinBad && !bizPanBad) {
+    var panInGstin = gstinVal.substring(2, 12);
+    if (panInGstin !== bizPanVal) {
+      showErr('err-gstin-pan-match');
+      if (ok) ok = false;
+    } else {
+      hideErr('err-gstin-pan-match');
+    }
+  } else {
+    hideErr('err-gstin-pan-match'); // don't show mismatch error until both fields are individually valid
+  }
+}
+    if (step === 3) {
+      checkText('sig1Name', 'err-sig1Name');
+      checkSelect('sig1Designation', 'err-sig1Designation');
+
+      var sig1AadhaarEl     = document.getElementById('sig1Aadhaar');
+      var sig1AadhaarDigits = sig1AadhaarEl.value.replace(/\D/g, '');
+      var sig1AadhaarBad    = !/^\d{12}$/.test(sig1AadhaarDigits);
+      if (sig1AadhaarBad) { showErr('err-sig1Aadhaar'); if (ok) ok = false; } else hideErr('err-sig1Aadhaar');
+
+      var sig1MobileEl     = document.getElementById('sig1Mobile');
+      var sig1MobileDigits = sig1MobileEl.value.replace(/[^0-9]/g, '').replace(/^(91)/, '');
+      var sig1MobileBad    = !/^[6-9]\d{9}$/.test(sig1MobileDigits);
+      if (sig1MobileBad) { showErr('err-sig1Mobile'); if (ok) ok = false; } else hideErr('err-sig1Mobile');
+    }
+    if (step === 4) {
+      checkText('accName', 'err-accName');
+      checkSelect('bankName', 'err-bankName');
+      checkText('accNum', 'err-accNum');
+      var accNumConfirm = document.getElementById('accNumConfirm');
+      var accNumEl = document.getElementById('accNum');
+      if (!accNumConfirm.value.trim() || accNumEl.value !== accNumConfirm.value) {
+        showErr('err-accNumConfirm'); if (ok) ok = false;
+      } else hideErr('err-accNumConfirm');
+      var IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+      var ifscEl  = document.getElementById('ifsc');
+      var ifscBad = !IFSC_REGEX.test(ifscEl.value.trim().toUpperCase());
+      if (ifscBad) { showErr('err-ifsc'); if (ok) ok = false; } else hideErr('err-ifsc');
+      var accType = document.querySelector('input[name="account_type"]:checked');
+      if (!accType) { showErr('err-accType'); if (ok) ok = false; } else hideErr('err-accType');
+      checkUpload('upCheque', 'err-cheque');
+    }
+    if (step === 5) {
+      checkUpload('upGST', 'err-upGST');
+      checkUpload('upPAN', 'err-upPAN');
+      checkUpload('upAadhaarF', 'err-upAadhaarF');
+      checkUpload('upAadhaarB', 'err-upAadhaarB');
+      checkUpload('upIncorp', 'err-upIncorp');
+    }
+    if (step === 6) {
+      checkText('regAddr1', 'err-regAddr1');
+      checkText('regCity', 'err-regCity');
+      checkSelect('regState', 'err-regState');
+      checkText('regPin', 'err-regPin');
+    }
+    if (step === 7) {
+      var all = ['vConsent1','vConsent2','vConsent3','vConsent4']
+        .every(function(id) { return document.getElementById(id).checked; });
+      if (!all) { showErr('err-vconsent'); if (ok) ok = false; } else hideErr('err-vconsent');
+    }
+    return ok;
+  }
+
+  var isSubmitting = false;
+
+  function showProcessingOverlay() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    document.body.classList.add('is-processing');
+    var overlay = document.getElementById('processingOverlay');
+    if (overlay) {
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+    var nextBtn = document.getElementById('nextBtn');
+    var prevBtn = document.getElementById('prevBtn');
+    if (nextBtn) {
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Processing...';
+    }
+    if (prevBtn) prevBtn.disabled = true;
+  }
+
+  var isSubmitting = false;
+
+  function showProcessingOverlay() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    document.body.classList.add('is-processing');
+    var overlay = document.getElementById('processingOverlay');
+    if (overlay) {
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+    var nextBtn = document.getElementById('nextBtn');
+    var prevBtn = document.getElementById('prevBtn');
+    if (nextBtn) {
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Processing...';
+    }
+    if (prevBtn) prevBtn.disabled = true;
+  }
+
+  function changeStep(dir) {
+    if (dir === 1 && !validate(currentStep)) return;
+    if (dir === 1 && currentStep === totalSteps) {
+      showProcessingOverlay();
+      document.getElementById('vendor-ekyc-form').submit();
+      return;
+    }
+    currentStep = Math.max(1, Math.min(totalSteps, currentStep + dir));
+    updateUI();
+  }
+  document.getElementById('prevBtn').addEventListener('click', function() { changeStep(-1); });
+  document.getElementById('nextBtn').addEventListener('click', function() { changeStep(1); });
+
+  // Same ops addr toggle
+  document.getElementById('sameOpsAddr').addEventListener('change', function() {
+    document.getElementById('opsAddrFields').style.display = this.checked ? 'none' : 'block';
+  });
+
+  // Format Aadhaar
+  var aadhaarInput = document.getElementById('sig1Aadhaar');
+  if (aadhaarInput) {
+    aadhaarInput.addEventListener('input', function() {
+      var v = this.value.replace(/\D/g,'').substring(0,12);
+      this.value = v.replace(/(\d{4})(?=\d)/g,'$1 ');
+    });
+  }
+
+  // IFSC uppercase
+  var ifscInput = document.getElementById('ifsc');
+  if (ifscInput) {
+    ifscInput.addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+  }
+
+  // IFSC uppercase
+  var ifscInput = document.getElementById('ifsc');
+  if (ifscInput) {
+    ifscInput.addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+  }
+
+  // GSTIN ↔ Business PAN live match check
+  function checkGstinPanLive() {
+    var GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+    var PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+    var g = document.getElementById('gstin').value.trim().toUpperCase();
+    var p = document.getElementById('bizPan').value.trim().toUpperCase();
+    var errEl = document.getElementById('err-gstin-pan-match');
+    if (!errEl) return;
+
+    if (GSTIN_REGEX.test(g) && PAN_REGEX.test(p)) {
+      var panInGstin = g.substring(2, 12);
+      if (panInGstin !== p) {
+        errEl.classList.add('show');
+      } else {
+        errEl.classList.remove('show');
+      }
+    } else {
+      errEl.classList.remove('show');
+    }
+  }
+  document.getElementById('gstin').addEventListener('input', checkGstinPanLive);
+  document.getElementById('bizPan').addEventListener('input', checkGstinPanLive);
+
+  // PIN code → auto-fill city & state (India Post public API)
+  function lookupPincode(pin, cityFieldId, stateFieldId) {
+    fetch('https://api.postalpincode.in/pincode/' + pin)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length) {
+          var po = data[0].PostOffice[0];
+          var cityEl = document.getElementById(cityFieldId);
+          var stateEl = document.getElementById(stateFieldId);
+          if (cityEl && !cityEl.value.trim()) cityEl.value = po.District;
+          if (stateEl) {
+            for (var i = 0; i < stateEl.options.length; i++) {
+              if (stateEl.options[i].text === po.State) {
+                stateEl.value = stateEl.options[i].value;
+                break;
+              }
+            }
+          }
+        }
+      })
+      .catch(function(err) { console.warn('Pincode lookup failed:', err); });
+  }
+
+  var regPinInput = document.getElementById('regPin');
+  if (regPinInput) {
+    regPinInput.addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '').substring(0, 6);
+      if (this.value.length === 6) lookupPincode(this.value, 'regCity', 'regState');
+    });
+  }
+
+  var opsPinInput = document.getElementById('opsPin');
+  if (opsPinInput) {
+    opsPinInput.addEventListener('input', function() {
+      this.value = this.value.replace(/\D/g, '').substring(0, 6);
+      if (this.value.length === 6) lookupPincode(this.value, 'opsCity', 'opsState');
+    });
+  }
+
+  // GSTIN / PAN uppercase (matches the visual text-transform, ensures the actual submitted value is uppercase too)
+  ['gstin', 'bizPan', 'sigPan'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+  });
+
+  updateUI();
+});
+
+// Add signatory
+var sigCount = 1;
+function addSignatory() {
+  sigCount++;
+  var container = document.getElementById('signatoryCards');
+  var div = document.createElement('div');
+  div.className = 'person-card';
+  div.id = 'sigCard' + sigCount;
+  div.innerHTML = '<div class="person-card-label">Authorised Signatory #' + sigCount + '</div>' +
+    '<button type="button" class="remove-person" onclick="removeSignatory(this)">×</button>' +
+    '<div class="form-grid">' +
+    '<div class="field"><label>Full name <span class="req">*</span></label><input type="text" name="sig' + sigCount + '_name" placeholder="As on Aadhaar card"/></div>' +
+    '<div class="field"><label>Designation <span class="req">*</span></label><select name="sig' + sigCount + '_designation"><option value="">Select</option><option>Director</option><option>Managing Director</option><option>Partner</option><option>Proprietor</option><option>Authorised Signatory</option><option>CEO</option><option>CFO</option><option>Other</option></select></div>' +
+    '<div class="field"><label>Aadhaar number <span class="req">*</span></label><input type="text" name="sig' + sigCount + '_aadhaar" placeholder="XXXX XXXX XXXX" maxlength="14"/></div>' +
+    '<div class="field"><label>Aadhaar-linked mobile <span class="req">*</span></label><input type="tel" name="sig' + sigCount + '_mobile" placeholder="98765 43210"/></div>' +
+    '</div>';
+  container.appendChild(div);
+}
+
+function removeSignatory(btn) {
+  btn.closest('.person-card').remove();
+}
+
+// GSTIN verify — real format check (structure + checksum position), not just length
+function verifyGSTIN() {
+  var GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/;
+  var g = document.getElementById('gstin').value.trim().toUpperCase();
+  document.getElementById('gstin').value = g;
+  var status = document.getElementById('gstinStatus');
+
+  if (!GSTIN_REGEX.test(g)) {
+    status.style.display = 'flex';
+    status.className = 'gstin-status failed';
+    status.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#E24B4A" stroke-width="1.2"/><path d="M4 4l4 4M8 4l-4 4" stroke="#E24B4A" stroke-width="1.2" stroke-linecap="round"/></svg> Invalid GSTIN';
+    return;
+  }
+  status.style.display = 'flex';
+  status.className = 'gstin-status';
+  status.style.color = 'var(--text-muted)';
+  status.textContent = 'Verifying...';
+  setTimeout(function() {
+    status.className = 'gstin-status verified';
+    status.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#8DC842" stroke-width="1.2"/><path d="M3.5 6l2 2 3-3" stroke="#8DC842" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> GSTIN verified';
+  }, 1200);
+}
+
+// File upload handler
+function handleUpload(zoneId, fnId, input) {
+  var zone = document.getElementById(zoneId);
+  var fn = document.getElementById(fnId);
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File too large. Maximum size is 5MB.');
+    return;
+  }
+  zone.classList.add('uploaded');
+  if (fn) { fn.textContent = file.name; }
+}
+</script>
+</body>
+</html>

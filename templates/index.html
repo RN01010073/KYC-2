@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VerifyX — AI-Powered eKYC Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --blue-50: #E6F1FB;
+      --blue-100: #B5D4F4;
+      --blue-400: #378ADD;
+      --blue-600: #185FA5;
+      --blue-800: #0C447C;
+      --blue-900: #042C53;
+
+      --green-50: #EAF3DE;
+      --green-600: #3B6D11;
+      --green-400: #639922;
+
+      --amber-50: #FAEEDA;
+      --amber-600: #854F0B;
+
+      --purple-50: #EEEDFE;
+      --purple-600: #534AB7;
+
+      --teal-50: #E1F5EE;
+      --teal-600: #0F6E56;
+
+      --pink-50: #FBEAF0;
+      --pink-600: #993556;
+
+      --gray-50: #F8F9FA;
+      --gray-100: #F1F0EA;
+      --gray-200: #E2E1D8;
+      --gray-400: #9B9A93;
+      --gray-600: #5F5E5A;
+      --gray-900: #18181A;
+
+      --bg: #0A0C10;
+      --bg-surface: #111318;
+      --bg-card: #161A22;
+      --bg-card-hover: #1C2130;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.14);
+
+      --text-primary: #F0F2F8;
+      --text-secondary: #8A8FA8;
+      --text-muted: #555A70;
+
+      --accent: #BD1616;
+      --accent-light: #5FA0E8;
+      --accent-glow: rgba(55, 138, 221, 0.15);
+
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      font-size: 16px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ───── Utility ───── */
+    .container { max-width: 2100px; margin: 0 auto; padding: 0 40px; }
+    .section-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+      line-height: 1.2;
+      margin-bottom: 40px;
+    }
+
+    /* ───── Nav ───── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 40px;
+      max-width: 2100px;
+      margin: 0 auto;
+    }
+    .logo {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .logo span { color: var(--accent); }
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: 14px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text-primary); }
+    .nav-cta {
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 22px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .nav-cta:hover { background: var(--accent-light); transform: translateY(-1px); }
+
+    /* ───── Hero ───── */
+    .hero {
+      padding: 100px 40px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 500px;
+      background: radial-gradient(ellipse at center, rgba(55,138,221,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--accent-glow);
+      color: var(--accent-light);
+      border: 1px solid rgba(55,138,221,0.25);
+      padding: 5px 14px;
+      border-radius: 100px;
+      margin-bottom: 28px;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(40px, 5.5vw, 62px);
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1.1;
+      letter-spacing: -2px;
+      max-width: 720px;
+      margin: 0 auto 20px;
+    }
+    .hero h1 em {
+      color: var(--accent);
+      font-style: normal;
+    }
+    .hero p {
+      font-size: 17px;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin: 0 auto 36px;
+      line-height: 1.7;
+    }
+    .hero-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 60px;
+    }
+    .btn-primary {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 13px 30px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-primary:hover { background: var(--accent-light); transform: translateY(-1px); }
+    .btn-secondary {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      padding: 13px 30px;
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:hover { background: var(--bg-card); border-color: var(--accent); }
+
+    /* ───── Hero Visual ───── */
+    .hero-visual {
+      max-width: 700px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+    }
+    .id-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s;
+    }
+    .id-card:hover { border-color: var(--border-strong); }
+    .id-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+    .id-avatar.blue { background: rgba(55,138,221,0.15); color: var(--accent-light); }
+    .id-avatar.amber { background: rgba(239,159,39,0.12); color: #EF9F27; }
+    .id-info { flex: 1; }
+    .id-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+    .id-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .id-status {
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+    .status-verified { background: rgba(99,153,34,0.15); color: #8DC842; border: 1px solid rgba(99,153,34,0.25); }
+    .status-pending { background: rgba(239,159,39,0.12); color: #EF9F27; border: 1px solid rgba(239,159,39,0.2); }
+    .steps-row { display: flex; gap: 10px; margin-top: 14px; }
+    .step-card {
+      flex: 1;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px;
+    }
+    .step-icon {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 10px;
+    }
+    .step-icon.blue { background: rgba(55,138,221,0.15); }
+    .step-icon.green { background: rgba(99,153,34,0.12); }
+    .step-icon.purple { background: rgba(83,74,183,0.15); }
+    .step-label { font-size: 11px; font-weight: 500; color: var(--text-primary); margin-bottom: 2px; }
+    .step-sub-text { font-size: 10px; color: var(--text-muted); margin-bottom: 10px; }
+    .progress-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill { height: 100%; border-radius: 3px; }
+
+    /* ───── Stats ───── */
+    .stats {
+      padding: 56px 40px;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-surface);
+    }
+    .stats-grid {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 0 24px;
+      border-right: 1px solid var(--border);
+    }
+    .stat-item:last-child { border-right: none; }
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+    .stat-num span { color: var(--accent); }
+    .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+
+    /* ───── Features ───── */
+    .features { padding: 88px 40px; }
+    .feat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .feat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    }
+    .feat-card:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+    }
+    .feat-icon {
+      width: 42px; height: 42px;
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+    }
+    .feat-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .feat-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.65; }
+
+    /* ───── How it Works ───── */
+    .how {
+      padding: 88px 40px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .how-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: start; }
+    .steps-list { display: flex; flex-direction: column; }
+    .step-item {
+      display: flex;
+      gap: 18px;
+      padding: 22px 0;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .step-item:last-child { border-bottom: none; }
+    .step-item:hover { opacity: 0.85; }
+    .step-num {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent-glow);
+      border: 1px solid rgba(55,138,221,0.3);
+      color: var(--accent-light);
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-body h3 {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .step-body p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+    .how-visual {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 28px;
+    }
+    .terminal-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+    .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .d-red { background: #E24B4A; }
+    .d-amber { background: #EF9F27; }
+    .d-green { background: #639922; }
+    .code-block {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--text-secondary);
+    }
+    .code-block .key { color: #7DC8F0; }
+    .code-block .str { color: #B5E8B5; }
+    .code-block .num { color: #F5C97A; }
+    .code-block .bool-true { color: #8DC842; }
+    .code-block .comment { color: var(--text-muted); }
+    .code-block .label { color: var(--text-primary); font-weight: 500; }
+
+    /* ───── CTA ───── */
+    .cta {
+      padding: 96px 40px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta::before {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 600px;
+      height: 400px;
+      background: radial-gradient(ellipse at center, rgba(55,138,221,0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta h2 {
+      font-family: var(--font-display);
+      font-size: 44px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      margin-bottom: 14px;
+    }
+    .cta p { font-size: 16px; color: var(--text-secondary); margin-bottom: 32px; }
+    .cta-btns { display: flex; gap: 12px; justify-content: center; }
+    .trust-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 28px;
+    }
+    .trust-item { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .trust-item::before { content: '✓'; color: #8DC842; font-weight: 700; }
+
+    /* ───── Footer ───── */
+    footer {
+      padding: 28px 40px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 100%;
+    }
+    .footer-right { font-size: 13px; color: var(--text-muted); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text-primary); }
+
+    /* ───── Responsive ───── */
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .hero { padding: 60px 24px 48px; }
+      .hero h1 { font-size: 36px; letter-spacing: -1px; }
+      .container { padding: 0 24px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+      .stat-item { border-right: none; border-bottom: 1px solid var(--border); padding-bottom: 24px; }
+      .stat-item:nth-child(2n) { border-right: none; }
+      .feat-grid { grid-template-columns: 1fr; }
+      .how-layout { grid-template-columns: 1fr; }
+      .steps-row { flex-direction: column; }
+      .hero-btns { flex-direction: column; align-items: center; }
+      .cta-btns { flex-direction: column; align-items: center; }
+      .nav-inner { padding: 16px 24px; }
+      .features, .how, .cta { padding: 56px 24px; }
+      .stats { padding: 40px 24px; }
+      footer { flex-direction: column; gap: 16px; text-align: center; padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a href="#" class="logo">Verify<span>X</span></a>
+      <ul class="nav-links">
+        <li><a href="#">Product</a></li>
+        <li><a href="#">Solutions</a></li>
+        <li><a href="#">Pricing</a></li>
+        <li><a href="#">Docs</a></li>
+      </ul>
+      <a href="#" class="nav-cta">Get started</a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">AI-powered eKYC platform</div>
+    <h1>Identity verification<br>at <em>machine speed</em></h1>
+    <p>Onboard customers in seconds with real-time document validation, liveness detection, and global compliance checks.</p>
+    <div class="hero-btns">
+      <a href="/kyc-select" class="btn-primary">Start verifying →</a>
+      <a href="#how" class="btn-secondary">See how it works</a>
+    </div>
+
+    <div class="hero-visual">
+      <div class="id-card">
+        <div class="id-avatar blue">AR</div>
+        <div class="id-info">
+          <div class="id-name">Arjun Rathore</div>
+          <div class="id-sub">Passport · IN · Expires 2031</div>
+        </div>
+        <div class="id-status status-verified">Verified</div>
+      </div>
+      <div class="id-card" style="opacity:0.65;">
+        <div class="id-avatar amber">SM</div>
+        <div class="id-info">
+          <div class="id-name">Sara Mehta</div>
+          <div class="id-sub">Aadhaar · IN · Processing...</div>
+        </div>
+        <div class="id-status status-pending">Pending</div>
+      </div>
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-icon blue">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="2" stroke="#378ADD" stroke-width="1.5"/><path d="M5 7h6M5 10h4" stroke="#378ADD" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="step-label">Document scan</div>
+          <div class="step-sub-text">OCR + MRZ read</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%;background:#378ADD;"></div></div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon green">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="6" r="3" stroke="#639922" stroke-width="1.5"/><path d="M2 14c0-3 2.7-5 6-5s6 2 6 5" stroke="#639922" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="step-label">Liveness check</div>
+          <div class="step-sub-text">Anti-spoof biometrics</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:80%;background:#639922;"></div></div>
+        </div>
+        <div class="step-card">
+          <div class="step-icon purple">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M8 2L10 6H14L11 9L12 13L8 11L4 13L5 9L2 6H6L8 2Z" stroke="#7F77DD" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="step-label">Risk scoring</div>
+          <div class="step-sub-text">AML + PEP screening</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:60%;background:#7F77DD;"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-num">2.4<span>s</span></div>
+        <div class="stat-label">Avg. verification time</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">99<span>%</span></div>
+        <div class="stat-label">Accuracy rate</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">190<span>+</span></div>
+        <div class="stat-label">Countries supported</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">50<span>M+</span></div>
+        <div class="stat-label">Identities verified</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features">
+    <div class="container">
+      <div class="section-label">Core capabilities</div>
+      <div class="section-title">Everything you need to verify<br>anyone, anywhere</div>
+      <div class="feat-grid">
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(55,138,221,0.12);">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="2" stroke="#378ADD" stroke-width="1.5"/><path d="M7 9h6M7 12h4" stroke="#378ADD" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="feat-title">Document verification</div>
+          <div class="feat-desc">Supports 10,000+ document types globally — passports, national IDs, driving licences, and more.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(99,153,34,0.12);">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="8" r="4" stroke="#639922" stroke-width="1.5"/><path d="M3 18c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#639922" stroke-width="1.5" stroke-linecap="round"/></svg>
+          </div>
+          <div class="feat-title">Face biometrics</div>
+          <div class="feat-desc">3D liveness detection and face match with military-grade anti-spoof technology.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(239,159,39,0.12);">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3L13 8H17L14 11L15 16L10 13L5 16L6 11L3 8H7L10 3Z" stroke="#EF9F27" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="feat-title">AML & PEP screening</div>
+          <div class="feat-desc">Real-time screening against global watchlists, sanctions databases, and adverse media.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(127,119,221,0.12);">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3l6 3v5c0 3.5-2.7 6.5-6 7.5C4.7 17.5 2 14.5 2 11V6l8-3z" stroke="#7F77DD" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="feat-title">Fraud detection</div>
+          <div class="feat-desc">AI models trained on millions of fraud patterns detect deepfakes and tampered documents instantly.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(29,158,117,0.12);">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="6" height="6" rx="1.5" stroke="#1D9E75" stroke-width="1.5"/><rect x="11" y="3" width="6" height="6" rx="1.5" stroke="#1D9E75" stroke-width="1.5"/><rect x="3" y="11" width="6" height="6" rx="1.5" stroke="#1D9E75" stroke-width="1.5"/><rect x="11" y="11" width="6" height="6" rx="1.5" stroke="#1D9E75" stroke-width="1.5"/></svg>
+          </div>
+          <div class="feat-title">API-first platform</div>
+          <div class="feat-desc">Drop-in SDKs for web and mobile. Integrate in under an hour with full developer docs.</div>
+        </div>
+        <div class="feat-card">
+          <div class="feat-icon" style="background:rgba(212,83,126,0.12);">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 10l4 4 10-8" stroke="#D4537E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="feat-title">Compliance ready</div>
+          <div class="feat-desc">Built-in GDPR, DPDP, FATF, and local KYC regulation compliance with full audit trails.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="how">
+    <div class="container">
+      <div class="how-layout">
+        <div>
+          <div class="section-label">How it works</div>
+          <div class="section-title">Verify in 4 steps</div>
+          <div class="steps-list">
+            <div class="step-item">
+              <div class="step-num">1</div>
+              <div class="step-body">
+                <h3>User submits ID document</h3>
+                <p>Capture via mobile camera or file upload. Supports JPEG, PNG, and PDF formats.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">2</div>
+              <div class="step-body">
+                <h3>AI extracts and validates data</h3>
+                <p>OCR reads document fields, MRZ checks integrity, and models flag tampering or forgery.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">3</div>
+              <div class="step-body">
+                <h3>Liveness and face match</h3>
+                <p>A short selfie video confirms the person is live and matches the document photo.</p>
+              </div>
+            </div>
+            <div class="step-item">
+              <div class="step-num">4</div>
+              <div class="step-body">
+                <h3>Result delivered via webhook</h3>
+                <p>Pass/fail decision with confidence scores, risk flags, and extracted data — in under 3 seconds.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="how-visual">
+          <div class="terminal-bar">
+            <div class="terminal-dot d-red"></div>
+            <div class="terminal-dot d-amber"></div>
+            <div class="terminal-dot d-green"></div>
+          </div>
+          <div class="code-block">
+            <span class="comment">// Webhook response payload</span><br>
+            {<br>
+            &nbsp;&nbsp;<span class="key">"status"</span>: <span class="str">"verified"</span>,<br>
+            &nbsp;&nbsp;<span class="key">"confidence"</span>: <span class="num">0.987</span>,<br>
+            &nbsp;&nbsp;<span class="key">"latency_ms"</span>: <span class="num">2341</span>,<br>
+            &nbsp;&nbsp;<span class="key">"document"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"type"</span>: <span class="str">"passport"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"country"</span>: <span class="str">"IN"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"name"</span>: <span class="str">"Arjun Rathore"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"dob"</span>: <span class="str">"1992-04-15"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"expiry"</span>: <span class="str">"2031-09-22"</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"tampered"</span>: <span class="bool-true">false</span><br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span class="key">"liveness"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"passed"</span>: <span class="bool-true">true</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"face_match"</span>: <span class="num">0.971</span><br>
+            &nbsp;&nbsp;},<br>
+            &nbsp;&nbsp;<span class="key">"risk"</span>: {<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"aml_flag"</span>: <span class="bool-true">false</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"pep"</span>: <span class="bool-true">false</span>,<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;<span class="key">"score"</span>: <span class="str">"low"</span><br>
+            &nbsp;&nbsp;}<br>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta">
+    <h2>Ready to onboard faster?</h2>
+    <p>Start with 500 free verifications. No credit card required.</p>
+    <div class="cta-btns">
+      <a href="#" class="btn-primary" style="font-size:15px;padding:14px 36px;">Start free trial →</a>
+      <a href="#" class="btn-secondary" style="font-size:15px;padding:14px 36px;">Talk to sales</a>
+    </div>
+    <div class="trust-note">
+      <div class="trust-item">SOC 2 Type II</div>
+      <div class="trust-item">ISO 27001</div>
+      <div class="trust-item">GDPR compliant</div>
+      <div class="trust-item">DPDP Act ready</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <a href="#" class="logo">Verify<span>X</span></a>
+    <div class="footer-links">
+      <a href="#">Privacy</a>
+      <a href="#">Terms</a>
+      <a href="#">Security</a>
+      <a href="#">Docs</a>
+    </div>
+    <div class="footer-right">© 2026 VerifyX. Built for compliance, designed for speed.</div>
+  </footer>
+
+</body>
+</html>

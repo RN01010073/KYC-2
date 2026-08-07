@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="email-obfuscation" content="off"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VerifyX — eKYC Verification Form</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: #378ADD;
+      --accent-light: #5FA0E8;
+      --accent-glow: rgba(55,138,221,0.15);
+      --bg: #0A0C10;
+      --bg-surface: #111318;
+      --bg-card: #161A22;
+      --bg-card-hover: #1C2130;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.14);
+      --text-primary: #F0F2F8;
+      --text-secondary: #8A8FA8;
+      --text-muted: #555A70;
+      --error: #E24B4A;
+      --error-bg: rgba(226,75,74,0.1);
+      --success: #8DC842;
+      --success-bg: rgba(141,200,66,0.1);
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-body); background: var(--bg); color: var(--text-primary); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 48px; border-bottom: 1px solid var(--border); background: rgba(10,12,16,0.9); position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); }
+    .logo { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+    .logo span { color: #BD1616; }
+    .nav-back { font-size: 13px; color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+    .nav-back:hover { color: var(--text-primary); }
+
+    .page-wrap { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+    .page-header { margin-bottom: 36px; }
+    .page-header h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .page-header p { font-size: 14px; color: var(--text-secondary); }
+
+    .progress-wrap { margin-bottom: 40px; }
+    .progress-steps { display: flex; gap: 0; }
+    .prog-step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; position: relative; cursor: pointer; }
+    .prog-step::before { content: ''; position: absolute; top: 14px; left: 50%; width: 100%; height: 2px; background: var(--border-strong); z-index: 0; }
+    .prog-step:last-child::before { display: none; }
+    .prog-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; position: relative; z-index: 1; border: 2px solid var(--border-strong); background: var(--bg-card); color: var(--text-muted); transition: all 0.25s; }
+    .prog-step.active .prog-dot { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+    .prog-step.done .prog-dot { border-color: var(--success); background: var(--success-bg); color: var(--success); }
+    .prog-step.done::before { background: var(--success); }
+    .prog-step.active::before { background: var(--accent); }
+    .prog-label { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.3; max-width: 70px; }
+    .prog-step.active .prog-label { color: var(--accent); }
+    .prog-step.done .prog-label { color: var(--success); }
+
+    .section-block { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px 32px; margin-bottom: 20px; }
+    .section-block.hidden { display: none; }
+    .section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+    .section-icon { width: 36px; height: 36px; border-radius: 9px; background: var(--accent-glow); border: 1px solid rgba(55,138,221,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .section-head h2 { font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--text-primary); }
+    .section-head p { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.span2 { grid-column: span 2; }
+    .field.span3 { grid-column: span 3; }
+    label { font-size: 12px; font-weight: 500; color: var(--text-secondary); display: flex; align-items: center; gap: 5px; }
+    .req { color: var(--error); font-size: 12px; }
+    .opt { font-size: 10px; color: var(--text-muted); font-weight: 400; background: rgba(255,255,255,0.05); padding: 1px 6px; border-radius: 4px; }
+    input[type="text"], input[type="email"], input[type="tel"], input[type="date"], input[type="number"], input[type="password"], select, textarea { background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text-primary); font-family: var(--font-body); font-size: 14px; padding: 10px 14px; width: 100%; outline: none; transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none; appearance: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+    input.error { border-color: var(--error); }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238A8FA8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+    select option { background: #1C2130; }
+    textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+    .field-hint { font-size: 11px; color: var(--text-muted); }
+    .field-error { font-size: 11px; color: var(--error); display: none; }
+    .field-error.show { display: block; }
+
+    .checkbox-wrap { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .checkbox-wrap input[type="checkbox"] { width: 17px; height: 17px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-surface); -webkit-appearance: none; appearance: none; cursor: pointer; flex-shrink: 0; margin-top: 2px; position: relative; padding: 0; transition: all 0.15s; }
+    .checkbox-wrap input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
+    .checkbox-wrap input[type="checkbox"]:checked::after { content: ''; position: absolute; left: 4px; top: 2px; width: 5px; height: 8px; border: 2px solid #fff; border-top: none; border-left: none; transform: rotate(45deg); }
+    .checkbox-label { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .checkbox-label a { color: var(--accent); text-decoration: none; }
+    .checkbox-label a:hover { text-decoration: underline; }
+
+    .upload-zone { border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); padding: 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative; }
+    .upload-zone:hover { border-color: var(--accent); background: var(--accent-glow); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-icon { margin: 0 auto 10px; width: 36px; height: 36px; border-radius: 9px; background: var(--bg-surface); border: 1px solid var(--border-strong); display: flex; align-items: center; justify-content: center; }
+    .upload-title { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 3px; }
+    .upload-hint { font-size: 11px; color: var(--text-muted); }
+    .upload-zone.uploaded { border-color: var(--success); background: var(--success-bg); }
+
+    .selfie-zone { border: 1.5px dashed var(--border-strong); border-radius: var(--radius-md); padding: 32px 24px; text-align: center; transition: border-color 0.2s; }
+    .selfie-zone:hover { border-color: var(--accent); }
+    .cam-circle { width: 80px; height: 80px; border-radius: 50%; background: var(--bg-surface); border: 2px solid var(--border-strong); margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; }
+
+    .sig-canvas-wrap { border: 1px solid var(--border-strong); border-radius: var(--radius-md); overflow: hidden; background: var(--bg-surface); }
+    canvas#sigCanvas { display: block; width: 100%; height: 120px; cursor: crosshair; touch-action: none; }
+    .sig-controls { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+    .sig-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: transparent; color: var(--text-secondary); cursor: pointer; font-family: var(--font-body); transition: background 0.15s, color 0.15s; }
+    .sig-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+    .sig-hint { font-size: 11px; color: var(--text-muted); padding: 8px 12px; }
+
+    .radio-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .radio-pill { position: relative; }
+    .radio-pill input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+    .radio-pill label { display: flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 100px; border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-secondary); font-size: 13px; font-weight: 400; cursor: pointer; transition: all 0.15s; }
+    .radio-pill input:checked + label { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+    .divider { height: 1px; background: var(--border); margin: 20px 0; }
+    .sub-heading { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 14px; }
+
+    .nav-btns { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; }
+    .btn-prev { font-family: var(--font-body); font-size: 14px; font-weight: 500; padding: 11px 26px; background: transparent; color: var(--text-secondary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); cursor: pointer; transition: all 0.15s; }
+    .btn-prev:hover { background: var(--bg-card); color: var(--text-primary); }
+    .btn-next, .btn-submit { font-family: var(--font-body); font-size: 14px; font-weight: 500; padding: 11px 32px; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-md); cursor: pointer; transition: background 0.15s, transform 0.1s; }
+    .btn-next:hover, .btn-submit:hover { background: var(--accent-light); transform: translateY(-1px); }
+    .step-info { font-size: 12px; color: var(--text-muted); }
+
+    .success-screen { display: none; text-align: center; padding: 80px 24px; }
+    .success-screen.show { display: block; }
+    .success-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--success-bg); border: 2px solid var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+    .success-screen h2 { font-family: var(--font-display); font-size: 28px; font-weight: 700; margin-bottom: 10px; }
+    .success-screen p { font-size: 15px; color: var(--text-secondary); max-width: 420px; margin: 0 auto; }
+    .ref-box { display: inline-block; background: var(--bg-card); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 10px 24px; margin: 20px auto 0; font-family: monospace; font-size: 14px; color: var(--accent); letter-spacing: 1px; }
+
+    .processing-overlay {
+      position: fixed; inset: 0; z-index: 120;
+      background: rgba(10,12,16,0.88);
+      backdrop-filter: blur(14px);
+      display: none; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .processing-overlay.show { display: flex; }
+    .processing-card {
+      width: min(100%, 440px);
+      background: linear-gradient(180deg, rgba(22,26,34,0.98), rgba(17,19,24,0.98));
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg);
+      padding: 28px 28px 24px;
+      text-align: center;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+    }
+    .processing-ring {
+      width: 74px; height: 74px; margin: 0 auto 18px;
+      border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.08);
+      border-top-color: var(--accent);
+      border-right-color: var(--accent-light);
+      animation: spin 1s linear infinite;
+    }
+    .processing-card h2 {
+      font-family: var(--font-display);
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .processing-card p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+    .processing-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .processing-bar-fill {
+      width: 40%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      animation: processing-slide 1.35s ease-in-out infinite;
+    }
+    .processing-caption {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    body.is-processing { overflow: hidden; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes processing-slide {
+      0% { transform: translateX(-120%); }
+      50% { transform: translateX(90%); }
+      100% { transform: translateX(220%); }
+    }
+
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .page-wrap { padding: 28px 16px 60px; }
+      .form-grid, .form-grid.three { grid-template-columns: 1fr; }
+      .field.span2, .field.span3 { grid-column: span 1; }
+      .section-block { padding: 20px 18px; }
+      .prog-label { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Verify<span>X</span></a>
+  <a href="/" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to home
+  </a>
+</nav>
+
+<div class="page-wrap">
+  <div id="formArea"><form id="ekyc-form" method="POST" action="/submit-ekyc" enctype="multipart/form-data">
+    <div class="page-header">
+      <h1>eKYC verification</h1>
+      <p>Complete all required fields to verify your identity. This usually takes 3–5 minutes.</p>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-steps" id="progressSteps">
+        <div class="prog-step active" data-step="1"><div class="prog-dot">1</div><div class="prog-label">Personal</div></div>
+        <div class="prog-step" data-step="2"><div class="prog-dot">2</div><div class="prog-label">Contact</div></div>
+        <div class="prog-step" data-step="3"><div class="prog-dot">3</div><div class="prog-label">Address</div></div>
+        <div class="prog-step" data-step="4"><div class="prog-dot">4</div><div class="prog-label">Identity</div></div>
+        <div class="prog-step" data-step="5"><div class="prog-dot">5</div><div class="prog-label">Documents</div></div>
+        <div class="prog-step" data-step="6"><div class="prog-dot">6</div><div class="prog-label">Selfie</div></div>
+        <div class="prog-step" data-step="7"><div class="prog-dot">7</div><div class="prog-label">Financial</div></div>
+        <div class="prog-step" data-step="8"><div class="prog-dot">8</div><div class="prog-label">Consent</div></div>
+      </div>
+    </div>
+
+    <!-- Step 1 -->
+    <div class="section-block" id="step1">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="7" r="3.5" stroke="#378ADD" stroke-width="1.5"/><path d="M2 16c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="#378ADD" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div><h2>Personal details</h2><p>As per your government-issued ID</p></div>
+      </div>
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Full name <span class="req">*</span></label>
+          <input type="text" id="fullName" name="full_name" placeholder="As printed on your ID"/>
+          <div class="field-error" id="err-fullName">Full name is required</div>
+        </div>
+        <div class="field">
+          <label>Date of birth <span class="req">*</span></label>
+          <input type="date" id="dob" name="dob"/>
+          <div class="field-error" id="err-dob">Date of birth is required</div>
+        </div>
+        <div class="field">
+          <label>Nationality <span class="req">*</span></label>
+          <select id="nationality" name="nationality">
+            <option value="">Select nationality</option>
+            <option>Indian</option><option>American</option><option>British</option><option>Canadian</option><option>Australian</option><option>Other</option>
+          </select>
+          <div class="field-error" id="err-nationality">Nationality is required</div>
+        </div>
+        <div class="field">
+          <label>Gender <span class="req">*</span></label>
+          <div class="radio-group" style="margin-top:4px;">
+            <div class="radio-pill"><input type="radio" name="gender" id="gM" value="male"><label for="gM">Male</label></div>
+            <div class="radio-pill"><input type="radio" name="gender" id="gF" value="female"><label for="gF">Female</label></div>
+            <div class="radio-pill"><input type="radio" name="gender" id="gO" value="other"><label for="gO">Other</label></div>
+          </div>
+          <div class="field-error" id="err-gender">Please select gender</div>
+        </div>
+        <div class="field">
+          <label>Marital status <span class="opt">optional</span></label>
+          <select name="marital_status"><option value="">Select</option><option>Single</option><option>Married</option><option>Divorced</option><option>Widowed</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="section-block hidden" id="step2">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="#378ADD" stroke-width="1.5"/><path d="M2 7l7 5 7-5" stroke="#378ADD" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div><h2>Contact information</h2><p>Used to reach you during verification</p></div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Mobile number <span class="req">*</span></label>
+          <input type="tel" id="mobile" name="mobile" placeholder="+91 98765 43210" maxlength="10" inputmode="numeric" pattern="[6-9][0-9]{9}"/>
+          <div class="field-error" id="err-mobile">Valid mobile number is required</div>
+        </div>
+        <div class="field">
+          <label>Email address <span class="req">*</span></label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required/>
+          <div class="field-error" id="err-email">Valid email address is required</div>
+        </div>
+        <div class="field">
+          <label>Alternate contact <span class="opt">optional</span></label>
+          <input type="tel" placeholder="+91 98765 43210" name="alternate_contact"/>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="section-block hidden" id="step3">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2C6.24 2 4 4.24 4 7c0 4.25 5 9 5 9s5-4.75 5-9c0-2.76-2.24-5-5-5z" stroke="#378ADD" stroke-width="1.5"/><circle cx="9" cy="7" r="1.5" stroke="#378ADD" stroke-width="1.5"/></svg></div>
+        <div><h2>Address details</h2><p>Permanent and current address</p></div>
+      </div>
+      <div class="sub-heading">Permanent address</div>
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Address line 1 <span class="req">*</span></label>
+          <input type="text" id="pAddr1" name="perm_address_line1" placeholder="House/Flat no., Building name, Street"/>
+          <div class="field-error" id="err-pAddr1">Address line 1 is required</div>
+        </div>
+        <div class="field span2">
+          <label>Address line 2 <span class="opt">optional</span></label>
+          <input type="text" placeholder="Area, Locality, Landmark" name="perm_address_line2"/>
+        </div>
+        <div class="field">
+          <label>City <span class="req">*</span></label>
+          <input type="text" id="pCity" name="perm_city" placeholder="e.g. Mumbai"/>
+          <div class="field-error" id="err-pCity">City is required</div>
+        </div>
+        <div class="field">
+          <label>State <span class="req">*</span></label>
+          <select id="pState" name="perm_state">
+  <option value="">Select state</option>
+  <option>Andaman and Nicobar Islands</option>
+  <option>Andhra Pradesh</option>
+  <option>Arunachal Pradesh</option>
+  <option>Assam</option>
+  <option>Bihar</option>
+  <option>Chandigarh</option>
+  <option>Chhattisgarh</option>
+  <option>Dadra and Nagar Haveli and Daman and Diu</option>
+  <option>Delhi</option>
+  <option>Goa</option>
+  <option>Gujarat</option>
+  <option>Haryana</option>
+  <option>Himachal Pradesh</option>
+  <option>Jammu and Kashmir</option>
+  <option>Jharkhand</option>
+  <option>Karnataka</option>
+  <option>Kerala</option>
+  <option>Ladakh</option>
+  <option>Lakshadweep</option>
+  <option>Madhya Pradesh</option>
+  <option>Maharashtra</option>
+  <option>Manipur</option>
+  <option>Meghalaya</option>
+  <option>Mizoram</option>
+  <option>Nagaland</option>
+  <option>Odisha</option>
+  <option>Puducherry</option>
+  <option>Punjab</option>
+  <option>Rajasthan</option>
+  <option>Sikkim</option>
+  <option>Tamil Nadu</option>
+  <option>Telangana</option>
+  <option>Tripura</option>
+  <option>Uttar Pradesh</option>
+  <option>Uttarakhand</option>
+  <option>West Bengal</option>
+</select>
+          <div class="field-error" id="err-pState">State is required</div>
+        </div>
+      </div>
+      <div class="form-grid three" style="margin-top:16px;">
+        <div class="field">
+          <label>PIN code <span class="req">*</span></label>
+          <input type="text" id="pPin" name="perm_pin" placeholder="e.g. 400001" maxlength="6"/>
+          <div class="field-error" id="err-pPin">Valid PIN code is required</div>
+        </div>
+        <div class="field">
+          <label>Country <span class="req">*</span></label>
+          <select id="pCountry" name="perm_country">
+            <option value="">Select</option><option selected>India</option><option>USA</option><option>UK</option><option>Canada</option><option>Other</option>
+          </select>
+          <div class="field-error" id="err-pCountry">Country is required</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="sub-heading">Current address</div>
+      <label class="checkbox-wrap" style="margin-bottom:16px;">
+        <input type="checkbox" id="sameAddr" name="same_address" checked/>
+        <span class="checkbox-label">Same as permanent address</span>
+      </label>
+      <div id="currentAddrFields" style="display:none;">
+        <div class="form-grid">
+          <div class="field span2"><label>Address line 1 <span class="req">*</span></label><input type="text" placeholder="House/Flat no., Building name, Street" name="curr_address_line1"/></div>
+          <div class="field span2"><label>Address line 2 <span class="opt">optional</span></label><input type="text" placeholder="Area, Locality, Landmark" name="curr_address_line2"/></div>
+          <div class="field"><label>City <span class="req">*</span></label><input type="text" id="currCity" placeholder="e.g. Mumbai" name="curr_city"/></div>
+          <div class="field"><label>State <span class="req">*</span></label><select id="currState" name="curr_state">
+  <option value="">Select state</option>
+  <option>Andaman and Nicobar Islands</option>
+  <option>Andhra Pradesh</option>
+  <option>Arunachal Pradesh</option>
+  <option>Assam</option>
+  <option>Bihar</option>
+  <option>Chandigarh</option>
+  <option>Chhattisgarh</option>
+  <option>Dadra and Nagar Haveli and Daman and Diu</option>
+  <option>Delhi</option>
+  <option>Goa</option>
+  <option>Gujarat</option>
+  <option>Haryana</option>
+  <option>Himachal Pradesh</option>
+  <option>Jammu and Kashmir</option>
+  <option>Jharkhand</option>
+  <option>Karnataka</option>
+  <option>Kerala</option>
+  <option>Ladakh</option>
+  <option>Lakshadweep</option>
+  <option>Madhya Pradesh</option>
+  <option>Maharashtra</option>
+  <option>Manipur</option>
+  <option>Meghalaya</option>
+  <option>Mizoram</option>
+  <option>Nagaland</option>
+  <option>Odisha</option>
+  <option>Puducherry</option>
+  <option>Punjab</option>
+  <option>Rajasthan</option>
+  <option>Sikkim</option>
+  <option>Tamil Nadu</option>
+  <option>Telangana</option>
+  <option>Tripura</option>
+  <option>Uttar Pradesh</option>
+  <option>Uttarakhand</option>
+  <option>West Bengal</option>
+</select></div>
+        </div>
+        <div class="form-grid three" style="margin-top:16px;">
+          <div class="field"><label>PIN code <span class="req">*</span></label><input type="text" id="currPin" placeholder="e.g. 400001" maxlength="6" name="curr_pin"/></div>
+         <div class="field"><label>Country <span class="req">*</span></label><select name="curr_country"><option>India</option><option>USA</option><option>UK</option><option>Other</option></select></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="section-block hidden" id="step4">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#378ADD" stroke-width="1.5"/><circle cx="6.5" cy="9" r="1.5" stroke="#378ADD" stroke-width="1.2"/><path d="M10 7.5h3M10 10.5h2" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+        <div><h2>Identity proof</h2><p>Provide a valid government-issued ID</p></div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>ID type <span class="req">*</span></label>
+          <select id="idType" name="id_type">
+            <option value="">Select ID type</option>
+            <option value="aadhaar">Aadhaar card</option>
+            <option value="pan">PAN card</option>
+            <option value="dl">Driving licence</option>
+          </select>
+          <div class="field-error" id="err-idType">Please select an ID type</div>
+        </div>
+        <div class="field">
+          <label>ID number <span class="req">*</span></label>
+          <input type="text" id="idNumber" name="id_number" placeholder="Enter your ID number"/>
+          <div class="field-error" id="err-idNumber">ID number is required</div>
+        </div>
+        <div class="field" id="aadhaarFields" style="display:none;">
+  <label>Aadhaar-linked mobile <span class="req">*</span></label>
+  <input type="tel" id="aadhaarMobile" name="aadhaar_linked_mobile" placeholder="Mobile linked to Aadhaar" maxlength="10" inputmode="numeric" pattern="[6-9][0-9]{9}"/>
+  <div class="field-error" id="err-aadhaarMobile">Enter a valid 10-digit mobile number starting with 6-9</div>
+</div>
+        <div class="field" id="passportFields" style="display:none;">
+          <label>Passport expiry date <span class="req">*</span></label>
+          <input type="date"/>
+        </div>
+        <div class="field" id="dlFields" style="display:none;">
+          <label>Licence expiry date <span class="req">*</span></label>
+          <input type="date" id="dlExpiry" name="dl_expiry_date" min="2026-01-01"/>
+          <div class="field-error" id="err-dlExpiry">Enter a valid expiry date</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="section-block hidden" id="step5">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M10 2H5a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V8l-5-6z" stroke="#378ADD" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 2v6h5" stroke="#378ADD" stroke-width="1.5" stroke-linejoin="round"/></svg></div>
+        <div><h2>Document upload</h2><p>JPEG, PNG or PDF — max 5MB each</p></div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>ID proof — front <span class="req">*</span></label>
+          <div class="upload-zone" id="upIdFront">
+            <input type="file" accept="image/*,.pdf" name="id_proof_front" onchange="markUploaded('upIdFront')"/>
+            <div class="upload-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 4l3-3 3 3" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Upload front side</div>
+            <div class="upload-hint">Drag & drop or click to browse</div>
+          </div>
+          <div class="field-error" id="err-upIdFront">ID front is required</div>
+        </div>
+        <div class="field">
+          <label>ID proof — back <span class="req">*</span></label>
+          <div class="upload-zone" id="upIdBack">
+            <input type="file" accept="image/*,.pdf" name="id_proof_back" onchange="markUploaded('upIdBack')"/>
+            <div class="upload-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 4l3-3 3 3" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Upload back side</div>
+            <div class="upload-hint">Drag & drop or click to browse</div>
+          </div>
+          <div class="field-error" id="err-upIdBack">ID back is required</div>
+        </div>
+        <div class="field">
+          <label>Address proof <span class="opt">optional</span></label>
+          <div class="upload-zone" id="upAddr">
+            <input type="file" accept="image/*,.pdf" name="address_proof" onchange="markUploaded('upAddr')"/>
+            <div class="upload-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 4l3-3 3 3" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Upload address proof</div>
+            <div class="upload-hint">Utility bill, bank statement etc.</div>
+          </div>
+          <div class="field-error" id="err-upAddr">Address proof is optional</div>
+        </div>
+        <div class="field">
+          <label>Income proof <span class="opt">optional</span></label>
+          <div class="upload-zone" id="upIncome">
+            <input type="file" accept="image/*,.pdf" name="income_proof" onchange="markUploaded('upIncome')"/>
+            <div class="upload-icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 4l3-3 3 3" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12v1a1 1 0 001 1h10a1 1 0 001-1v-1" stroke="#8A8FA8" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+            <div class="upload-title">Upload income proof</div>
+            <div class="upload-hint">Salary slip, ITR, Form 16</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="section-block hidden" id="step6">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="5" width="14" height="10" rx="2" stroke="#378ADD" stroke-width="1.5"/><circle cx="9" cy="10" r="2.5" stroke="#378ADD" stroke-width="1.5"/><path d="M6 5V4a1 1 0 011-1h4a1 1 0 011 1v1" stroke="#378ADD" stroke-width="1.5"/></svg></div>
+        <div><h2>Live photo & signature</h2><p>Selfie and signature for identity confirmation</p></div>
+      </div>
+      <div class="sub-heading" style="margin-bottom:12px;">Selfie / live photo <span class="req">*</span></div>
+      <div class="selfie-zone" id="selfieZone">
+  <video id="selfieVideo" autoplay playsinline style="display:none; width:100%; max-width:360px; border-radius:var(--radius-md); margin:0 auto 12px;"></video>
+  <canvas id="selfieCanvas" style="display:none;"></canvas>
+  <img id="selfiePreview" style="display:none; width:100%; max-width:360px; border-radius:var(--radius-md); margin:0 auto 12px;" />
+
+  <div id="selfiePrompt">
+    <div class="cam-circle"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="13" r="5" stroke="#8A8FA8" stroke-width="1.5"/><rect x="4" y="8" width="20" height="14" rx="3" stroke="#8A8FA8" stroke-width="1.5"/><circle cx="22" cy="11" r="1" fill="#8A8FA8"/></svg></div>
+    <div class="upload-title" style="margin-bottom:4px;">Live camera capture required</div>
+    <div class="upload-hint">Face clearly visible, good lighting, no glasses</div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:center;margin-top:14px;">
+    <button type="button" class="sig-btn" id="startCamBtn">Open camera</button>
+    <button type="button" class="sig-btn" id="captureBtn" style="display:none;">Capture photo</button>
+    <button type="button" class="sig-btn" id="retakeBtn" style="display:none;">Retake</button>
+  </div>
+
+  <input type="file" id="selfieFileInput" name="selfie" accept="image/*" style="display:none;" />
+</div>
+      <div class="field-error" id="err-selfieZone" style="margin-top:8px;">Please capture or upload a selfie</div>
+      <div class="divider"></div>
+      <div class="sub-heading" style="margin-bottom:12px;">Signature <span class="req">*</span></div>
+      <div class="sig-canvas-wrap">
+        <canvas id="sigCanvas" width="800" height="120"></canvas>
+        <div class="sig-hint">Draw your signature using mouse or touch</div>
+        <div class="sig-controls">
+          <button class="sig-btn" type="button" id="clearSigBtn">Clear</button>
+          <button class="sig-btn" type="button" id="downloadSigBtn">Save</button>
+          <label class="sig-btn" style="cursor:pointer;">Upload instead <input type="file" accept="image/*" name="signature_upload" style="display:none;" onchange="markSignatureUploaded()"/></label>
+        </div>
+      </div>
+      <div class="field-error" id="err-signature" style="margin-top:8px;">Please draw or upload your signature</div>
+    </div>
+
+    <!-- Step 7 -->
+    <div class="section-block hidden" id="step7">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="#378ADD" stroke-width="1.5"/><path d="M6 9h2m2 0h2M6 12h3" stroke="#378ADD" stroke-width="1.2" stroke-linecap="round"/></svg></div>
+        <div><h2>Financial & additional details</h2><p>Required for regulatory compliance</p></div>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label>Occupation <span class="req">*</span></label>
+          <select id="occupation" name="occupation">
+            <option value="">Select occupation</option>
+            <option>Salaried employee</option><option>Self-employed</option><option>Business owner</option><option>Student</option><option>Retired</option><option>Homemaker</option><option>Other</option>
+          </select>
+          <div class="field-error" id="err-occupation">Occupation is required</div>
+        </div>
+        <div class="field">
+          <label>Annual income range <span class="req">*</span></label>
+          <select id="income" name="annual_income">
+            <option value="">Select range</option>
+            <option>Below ₹2.5 lakh</option><option>₹2.5 – 5 lakh</option><option>₹5 – 10 lakh</option><option>₹10 – 25 lakh</option><option>₹25 lakh – 1 crore</option><option>Above ₹1 crore</option>
+          </select>
+          <div class="field-error" id="err-income">Annual income range is required</div>
+        </div>
+        <div class="field">
+          <label>Source of funds <span class="req">*</span></label>
+          <select id="fundsSource" name="source_of_funds">
+            <option value="">Select source</option>
+            <option>Salary / employment income</option><option>Business income</option><option>Investments / savings</option><option>Inheritance / gift</option><option>Pension</option><option>Other</option>
+          </select>
+          <div class="field-error" id="err-fundsSource">Source of funds is required</div>
+        </div>
+        <div class="field">
+          <label>PEP status <span class="req">*</span></label>
+          <select id="pepStatus" name="pep_status">
+            <option value="">Select</option>
+            <option value="no">No — not a politically exposed person</option>
+            <option value="yes">Yes — I am a PEP</option>
+            <option value="related">Yes — related to a PEP</option>
+          </select>
+          <div class="field-hint">Politically Exposed Person — holds/held prominent public functions</div>
+          <div class="field-error" id="err-pepStatus">PEP status is required</div>
+        </div>
+        <div class="field span2">
+          <label>Purpose of account <span class="opt">optional</span></label>
+          <textarea placeholder="Briefly describe the purpose of opening this account..." name="account_purpose"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 8 -->
+    <div class="section-block hidden" id="step8">
+      <div class="section-head">
+        <div class="section-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l5 2.5V9c0 3.5-2.3 6.5-5 7.5C6.3 15.5 4 12.5 4 9V4.5L9 2z" stroke="#378ADD" stroke-width="1.5" stroke-linejoin="round"/><path d="M6.5 9l1.5 1.5 3-3" stroke="#378ADD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h2>Consent & declaration</h2><p>Please read and accept before submitting</p></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <label class="checkbox-wrap"><input type="checkbox" id="consentKyc"/><span class="checkbox-label">I consent to the collection, storage, and processing of my personal and biometric data for KYC verification in accordance with applicable data protection laws.</span></label>
+        <label class="checkbox-wrap"><input type="checkbox" id="consentTerms"/><span class="checkbox-label">I have read and agree to the <a href="#">Terms & Conditions</a> and <a href="#">Privacy Policy</a> of VerifyX.</span></label>
+        <label class="checkbox-wrap"><input type="checkbox" id="consentAccuracy"/><span class="checkbox-label">I declare that all information provided is accurate and true to the best of my knowledge. I understand that providing false information may result in rejection or legal action.</span></label>
+        <label class="checkbox-wrap"><input type="checkbox" id="consentThirdParty"/><span class="checkbox-label">I authorize VerifyX to share my KYC data with regulated financial institutions and relevant government bodies for verification purposes.</span></label>
+      </div>
+      <div class="field-error" id="err-consent" style="margin-top:12px;">Please accept all required consents to proceed</div>
+      <div style="margin-top:24px;padding:16px;background:var(--bg-surface);border-radius:var(--radius-md);border:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--text-muted);line-height:1.6;">Your data is encrypted using AES-256. VerifyX is SOC 2 Type II certified, ISO 27001 compliant, and operates under India's DPDP Act 2023. Queries: <span style="color:var(--accent);"><span>privacy [at] verifyx.io</span></span></div>
+      </div>
+    </div>
+
+    <div class="nav-btns">
+      <button class="btn-prev" id="prevBtn" style="visibility:hidden;" type="button">&#8592; Previous</button>
+      <span class="step-info" id="stepInfo">Step 1 of 8</span>
+      <button class="btn-next" id="nextBtn" type="button">Next &#8594;</button>
+    </div>
+  </form></div>
+
+  <!-- Success -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-icon"><svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M8 16l5 5 11-10" stroke="#8DC842" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <h2>Submission successful</h2>
+    <p>Your eKYC application has been received. We will verify your documents and notify you within 24 hours.</p>
+    <div class="ref-box" id="refNum"></div>
+    <div style="margin-top:32px;"><a href="verifyx_homepage.html" style="font-size:14px;color:var(--text-secondary);text-decoration:none;">&#8592; Return to VerifyX home</a></div>
+  </div>
+</div>
+
+<div class="processing-overlay" id="processingOverlay" aria-live="polite" aria-hidden="true">
+  <div class="processing-card">
+    <div class="processing-ring"></div>
+    <h2>Processing your KYC</h2>
+    <p>We’re uploading files, running OCR, and preparing your verification result. This can take a few moments.</p>
+    <div class="processing-bar">
+      <div class="processing-bar-fill"></div>
+    </div>
+    <div class="processing-caption">Please keep this page open.</div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+  var currentStep = 1;
+  var totalSteps  = 8;
+  var isSubmitting = false;
+  var hasSignature = false;
+
+  function showProcessingOverlay() {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    document.body.classList.add('is-processing');
+    var overlay = document.getElementById('processingOverlay');
+    if (overlay) {
+      overlay.classList.add('show');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+    var nextBtn = document.getElementById('nextBtn');
+    var prevBtn = document.getElementById('prevBtn');
+    if (nextBtn) {
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Processing...';
+    }
+    if (prevBtn) prevBtn.disabled = true;
+  }
+
+  // ── UI update ──────────────────────────────────────────────
+  function updateUI() {
+    for (var i = 1; i <= totalSteps; i++) {
+      var b = document.getElementById('step' + i);
+      if (b) b.classList.toggle('hidden', i !== currentStep);
+    }
+    document.querySelectorAll('.prog-step').forEach(function(el, idx) {
+      var s = idx + 1;
+      el.classList.remove('active', 'done');
+      if (s === currentStep) el.classList.add('active');
+      else if (s < currentStep) el.classList.add('done');
+    });
+    document.getElementById('prevBtn').style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+    document.getElementById('stepInfo').textContent = 'Step ' + currentStep + ' of ' + totalSteps;
+    var nb = document.getElementById('nextBtn');
+    nb.textContent = currentStep === totalSteps ? 'Submit application' : 'Next →';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Validation ────────────────────────────────────────────
+  function validate(step) {
+    var ok = true;
+
+    function checkField(elId, errId, type) {
+      var el = document.getElementById(elId);
+      var er = document.getElementById(errId);
+      if (!el || !er) return;
+      var bad = type === 'upload'
+        ? !el.classList.contains('uploaded')
+        : (!el.value || el.value.trim() === '');
+      if (type === 'text') el.classList.toggle('error', bad);
+      er.classList.toggle('show', bad);
+      if (bad) { ok = false; el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }
+
+    if (step === 1) {
+      checkField('fullName',    'err-fullName',    'text');
+      checkField('dob',         'err-dob',         'text');
+      checkField('nationality', 'err-nationality', 'select');
+      var g  = document.querySelector('input[name="gender"]:checked');
+      var eg = document.getElementById('err-gender');
+      if (!g) { eg.classList.add('show'); ok = false; }
+      else      eg.classList.remove('show');
+    }
+    if (step === 2) {
+      var mobileEl = document.getElementById('mobile');
+      var mobileErr = document.getElementById('err-mobile');
+      var mobileDigits = mobileEl.value.replace(/[^0-9]/g, '').replace(/^(91)/, '');
+      var mobileBad = !/^[6-9]\d{9}$/.test(mobileDigits);
+      mobileEl.classList.toggle('error', mobileBad);
+      mobileErr.textContent = 'Enter a valid 10-digit mobile number starting with 6-9';
+      mobileErr.classList.toggle('show', mobileBad);
+      if (mobileBad) { ok = false; mobileEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+      var emailEl = document.getElementById('email');
+      var emailErr = document.getElementById('err-email');
+      var emailBad = !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value.trim());
+      emailEl.classList.toggle('error', emailBad);
+      emailErr.textContent = 'Enter a valid email address';
+      emailErr.classList.toggle('show', emailBad);
+      if (emailBad) { ok = false; emailEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }
+    if (step === 3) {
+      checkField('pAddr1',   'err-pAddr1',   'text');
+      checkField('pCity',    'err-pCity',    'text');
+      checkField('pState',   'err-pState',   'select');
+      checkField('pPin',     'err-pPin',     'text');
+      checkField('pCountry', 'err-pCountry', 'select');
+    }
+    if (step === 4) {
+      checkField('idType',   'err-idType',   'select');
+      checkField('idNumber', 'err-idNumber', 'text');
+
+      if (document.getElementById('idType').value === 'aadhaar') {
+        var aadhaarMobileEl  = document.getElementById('aadhaarMobile');
+        var aadhaarMobileErr = document.getElementById('err-aadhaarMobile');
+        var aadhaarDigits    = aadhaarMobileEl.value.replace(/[^0-9]/g, '').replace(/^(91)/, '');
+        var aadhaarMobileBad = !/^[6-9]\d{9}$/.test(aadhaarDigits);
+        aadhaarMobileEl.classList.toggle('error', aadhaarMobileBad);
+        aadhaarMobileErr.classList.toggle('show', aadhaarMobileBad);
+        if (aadhaarMobileBad) { ok = false; aadhaarMobileEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      }
+
+      if (document.getElementById('idType').value === 'dl') {
+        var dlExpiryEl  = document.getElementById('dlExpiry');
+        var dlExpiryErr = document.getElementById('err-dlExpiry');
+        var dlExpiryVal = dlExpiryEl.value;
+        var cutoff = new Date('2025-12-31');
+        var enteredDate = dlExpiryVal ? new Date(dlExpiryVal) : null;
+        var dlExpiryBad = !dlExpiryVal || isNaN(enteredDate.getTime()) || enteredDate <= cutoff;
+        dlExpiryEl.classList.toggle('error', dlExpiryBad);
+        dlExpiryErr.classList.toggle('show', dlExpiryBad);
+        if (dlExpiryBad) { ok = false; dlExpiryEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      }
+    }
+    if (step === 5) {
+      checkField('upIdFront', 'err-upIdFront', 'upload');
+      checkField('upIdBack',  'err-upIdBack',  'upload');
+    }
+    if (step === 6) {
+      var selfieZoneEl = document.getElementById('selfieZone');
+      var selfieErr    = document.getElementById('err-selfieZone');
+      var selfieBad    = !selfieZoneEl || !selfieZoneEl.classList.contains('uploaded');
+      if (selfieErr) selfieErr.classList.toggle('show', selfieBad);
+      if (selfieBad) { ok = false; if (selfieZoneEl) selfieZoneEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+      var sigErr = document.getElementById('err-signature');
+      var sigBad = !hasSignature;
+      if (sigErr) sigErr.classList.toggle('show', sigBad);
+      if (sigBad) { ok = false; document.getElementById('sigCanvas').scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    }
+    if (step === 7) {
+      checkField('occupation',  'err-occupation',  'select');
+      checkField('income',      'err-income',      'select');
+      checkField('fundsSource', 'err-fundsSource', 'select');
+      checkField('pepStatus',   'err-pepStatus',   'select');
+    }
+    if (step === 8) {
+      var all = ['consentKyc','consentTerms','consentAccuracy','consentThirdParty']
+        .every(function(id) { return document.getElementById(id).checked; });
+      document.getElementById('err-consent').classList.toggle('show', !all);
+      if (!all) ok = false;
+    }
+    return ok;
+  }
+
+  // ── Step navigation ───────────────────────────────────────
+  function changeStep(dir) {
+    if (dir === 1 && !validate(currentStep)) return;
+    if (dir === 1 && currentStep === totalSteps) {
+      showProcessingOverlay();
+      document.getElementById('ekyc-form').submit();
+      return;
+    }
+    currentStep = Math.max(1, Math.min(totalSteps, currentStep + dir));
+    updateUI();
+  }
+
+  // ── Button event listeners ────────────────────────────────
+  document.getElementById('prevBtn').addEventListener('click', function() { changeStep(-1); });
+  document.getElementById('nextBtn').addEventListener('click', function() { changeStep(1); });
+  document.getElementById('ekyc-form').addEventListener('submit', function() {
+    showProcessingOverlay();
+  });
+
+  // ── Address toggle ────────────────────────────────────────
+  var sameAddrCb = document.getElementById('sameAddr');
+  if (sameAddrCb) {
+    sameAddrCb.addEventListener('change', function() {
+      document.getElementById('currentAddrFields').style.display = this.checked ? 'none' : 'block';
+    });
+  }
+
+  // ── ID type toggle ────────────────────────────────────────
+  var idTypeEl = document.getElementById('idType');
+  if (idTypeEl) {
+    idTypeEl.addEventListener('change', function() {
+      document.getElementById('aadhaarFields').style.display  = this.value === 'aadhaar'   ? 'block' : 'none';
+      document.getElementById('passportFields').style.display = this.value === 'passport'  ? 'block' : 'none';
+      document.getElementById('dlFields').style.display       = this.value === 'dl'         ? 'block' : 'none';
+    });
+  }
+
+  // ── File upload marking ───────────────────────────────────
+  function markUploaded(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.add('uploaded');
+  }
+  function markSignatureUploaded() {
+    hasSignature = true;
+  }
+
+  // ── Live camera capture ────────────────────────────────────
+  (function() {
+    var video      = document.getElementById('selfieVideo');
+    var canvasEl    = document.getElementById('selfieCanvas');
+    var preview    = document.getElementById('selfiePreview');
+    var prompt     = document.getElementById('selfiePrompt');
+    var startBtn   = document.getElementById('startCamBtn');
+    var captureBtn = document.getElementById('captureBtn');
+    var retakeBtn  = document.getElementById('retakeBtn');
+    var fileInput  = document.getElementById('selfieFileInput');
+    var stream     = null;
+
+    if (startBtn) {
+      startBtn.addEventListener('click', function() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert('Camera access is not supported in this browser. Please use a modern browser over HTTPS.');
+          return;
+        }
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+          .then(function(s) {
+            stream = s;
+            video.srcObject = stream;
+            video.style.display = 'block';
+            prompt.style.display = 'none';
+            startBtn.style.display = 'none';
+            captureBtn.style.display = 'inline-block';
+          })
+          .catch(function(err) {
+            alert('Could not access camera: ' + err.message);
+          });
+      });
+
+      captureBtn.addEventListener('click', function() {
+        canvasEl.width = video.videoWidth;
+        canvasEl.height = video.videoHeight;
+        canvasEl.getContext('2d').drawImage(video, 0, 0);
+
+        canvasEl.toBlob(function(blob) {
+          var file = new File([blob], 'selfie_' + Date.now() + '.jpg', { type: 'image/jpeg' });
+          var dt = new DataTransfer();
+          dt.items.add(file);
+          fileInput.files = dt.files;
+
+          preview.src = canvasEl.toDataURL('image/jpeg');
+          preview.style.display = 'block';
+          video.style.display = 'none';
+          captureBtn.style.display = 'none';
+          retakeBtn.style.display = 'inline-block';
+
+          stream.getTracks().forEach(function(t) { t.stop(); });
+          document.getElementById('selfieZone').classList.add('uploaded');
+        }, 'image/jpeg', 0.92);
+      });
+
+      retakeBtn.addEventListener('click', function() {
+        preview.style.display = 'none';
+        retakeBtn.style.display = 'none';
+        startBtn.style.display = 'inline-block';
+        document.getElementById('selfieZone').classList.remove('uploaded');
+        fileInput.value = '';
+      });
+    }
+  })();
+
+  document.querySelectorAll('.upload-zone input[type="file"]').forEach(function(input) {
+    input.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        var zone = this.closest('.upload-zone');
+        if (zone) zone.classList.add('uploaded');
+      }
+    });
+  });
+
+  document.querySelectorAll('.selfie-zone input[type="file"]').forEach(function(input) {
+    input.addEventListener('change', function() {
+      if (this.files && this.files.length > 0) {
+        markUploaded('selfieZone');
+        var zone = this.closest('.selfie-zone');
+        if (zone) zone.classList.add('uploaded');
+      }
+    });
+  });
+
+  // ── Signature canvas ──────────────────────────────────────
+  var canvas = document.getElementById('sigCanvas');
+  if (canvas) {
+    var ctx = canvas.getContext('2d');
+    ctx.strokeStyle = '#5FA0E8';
+    ctx.lineWidth   = 2;
+    ctx.lineCap     = 'round';
+    ctx.lineJoin    = 'round';
+    var drawing = false, lx, ly;
+
+    function getPos(e) {
+      var r  = canvas.getBoundingClientRect();
+      var sx = canvas.width  / r.width;
+      var sy = canvas.height / r.height;
+      var src = e.touches ? e.touches[0] : e;
+      return [(src.clientX - r.left) * sx, (src.clientY - r.top) * sy];
+    }
+
+    canvas.addEventListener('mousedown',  function(e) { drawing = true; hasSignature = true; var p = getPos(e); lx = p[0]; ly = p[1]; });
+    canvas.addEventListener('mousemove',  function(e) { if (!drawing) return; var p = getPos(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p[0], p[1]); ctx.stroke(); lx = p[0]; ly = p[1]; });
+    canvas.addEventListener('mouseup',    function()  { drawing = false; });
+    canvas.addEventListener('mouseleave', function()  { drawing = false; });
+    canvas.addEventListener('touchstart', function(e) { e.preventDefault(); drawing = true; hasSignature = true; var p = getPos(e); lx = p[0]; ly = p[1]; }, { passive: false });
+    canvas.addEventListener('touchmove',  function(e) { e.preventDefault(); if (!drawing) return; var p = getPos(e); ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(p[0], p[1]); ctx.stroke(); lx = p[0]; ly = p[1]; }, { passive: false });
+    canvas.addEventListener('touchend',   function()  { drawing = false; });
+
+    document.getElementById('clearSigBtn').addEventListener('click',    function() { ctx.clearRect(0, 0, canvas.width, canvas.height); hasSignature = false; });
+    document.getElementById('downloadSigBtn').addEventListener('click', function() { var a = document.createElement('a'); a.download = 'signature.png'; a.href = canvas.toDataURL(); a.click(); });
+  }
+
+// ── PIN code auto-fill (city + state) ─────────────────────
+  function setupPinAutofill(pinInputId, cityInputId, stateSelectId) {
+    var pinEl   = document.getElementById(pinInputId);
+    var cityEl  = document.getElementById(cityInputId);
+    var stateEl = document.getElementById(stateSelectId);
+    if (!pinEl || !cityEl || !stateEl) return;
+
+    var lastLookedUp = '';
+
+    pinEl.addEventListener('input', function() {
+      var pin = pinEl.value.replace(/\D/g, '');
+      if (pin.length !== 6 || pin === lastLookedUp) return;
+      lastLookedUp = pin;
+
+      fetch('https://api.postalpincode.in/pincode/' + pin)
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (!data || !data[0] || data[0].Status !== 'Success' || !data[0].PostOffice || !data[0].PostOffice.length) return;
+          var po = data[0].PostOffice[0];
+          if (po.District) cityEl.value = po.District;
+          if (po.State) {
+            for (var i = 0; i < stateEl.options.length; i++) {
+              if (stateEl.options[i].text === po.State) {
+                stateEl.selectedIndex = i;
+                break;
+              }
+            }
+          }
+        })
+        .catch(function() { /* silent fail — user can still type manually */ });
+    });
+  }
+
+  setupPinAutofill('pPin', 'pCity', 'pState');
+  setupPinAutofill('currPin', 'currCity', 'currState');
+
+  // ── Init ──────────────────────────────────────────────────
+  updateUI();
+
+}); // end DOMContentLoaded
+</script>
+</body>
+</html>

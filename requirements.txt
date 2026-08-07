@@ -1,0 +1,8 @@
+﻿fastapi
+uvicorn[standard]
+httpx
+sqlalchemy
+psycopg2-binary
+python-dotenv
+jinja2
+python-multipart

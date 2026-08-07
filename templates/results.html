@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VerifyX — KYC Result</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent:       #378ADD;
+      --accent-light: #5FA0E8;
+      --accent-glow:  rgba(55,138,221,0.15);
+      --bg:           #0A0C10;
+      --bg-surface:   #111318;
+      --bg-card:      #161A22;
+      --border:       rgba(255,255,255,0.08);
+      --border-strong:rgba(255,255,255,0.14);
+      --text-primary: #F0F2F8;
+      --text-secondary:#8A8FA8;
+      --text-muted:   #555A70;
+      --green:        #8DC842;
+      --green-bg:     rgba(141,200,66,0.1);
+      --green-border: rgba(141,200,66,0.25);
+      --amber:        #EF9F27;
+      --amber-bg:     rgba(239,159,39,0.08);
+      --amber-border: rgba(239,159,39,0.25);
+      --red:          #E24B4A;
+      --red-bg:       rgba(226,75,74,0.08);
+      --red-border:   rgba(226,75,74,0.25);
+      --font-display: 'Syne', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-body); background: var(--bg); color: var(--text-primary);
+           -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 48px;
+          border-bottom: 1px solid var(--border); background: rgba(10,12,16,0.9);
+          backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; }
+    .logo { font-family: var(--font-display); font-size: 20px; font-weight: 700;
+            color: var(--text-primary); text-decoration: none; }
+    .logo span { color: #BD1616; }
+    .nav-back { font-size: 13px; color: var(--text-secondary); text-decoration: none;
+                display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+    .nav-back:hover { color: var(--text-primary); }
+
+    .page-wrap { max-width: 780px; margin: 0 auto; padding: 52px 24px 80px; }
+
+    /* ── Reference row ── */
+    .ref-row { display: flex; align-items: center; justify-content: space-between;
+               background: var(--bg-surface); border: 1px solid var(--border-strong);
+               border-radius: var(--radius-md); padding: 12px 20px; margin-bottom: 20px; }
+    .ref-label { font-size: 12px; color: var(--text-muted); }
+    .ref-num   { font-family: monospace; font-size: 14px; color: var(--accent); letter-spacing: 1px; }
+    .source-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 100px;
+                    background: var(--accent-glow); color: var(--accent-light);
+                    border: 1px solid rgba(55,138,221,0.25); }
+
+    /* ── Alert banners ── */
+    .alert { border-radius: var(--radius-md); padding: 14px 18px;
+             display: flex; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+    .alert-amber { background: var(--amber-bg); border: 1px solid var(--amber-border); }
+    .alert-red   { background: var(--red-bg);   border: 1px solid var(--red-border); }
+    .alert svg   { flex-shrink: 0; margin-top: 1px; }
+    .alert-body  { font-size: 13px; line-height: 1.55; }
+    .alert-amber .alert-body { color: var(--amber); }
+    .alert-red   .alert-body { color: var(--red); }
+    .alert-title { font-weight: 600; margin-bottom: 3px; }
+
+    /* ── Status banner ── */
+    .status-banner { border-radius: var(--radius-lg); padding: 32px;
+                     text-align: center; margin-bottom: 20px; border: 1px solid; }
+    .status-banner.approved { background: var(--green-bg); border-color: var(--green-border); }
+    .status-banner.review   { background: var(--amber-bg); border-color: var(--amber-border); }
+    .status-banner.rejected { background: var(--red-bg);   border-color: var(--red-border); }
+    .status-icon { width: 64px; height: 64px; border-radius: 50%;
+                   display: flex; align-items: center; justify-content: center;
+                   margin: 0 auto 16px; }
+    .approved .status-icon { background: rgba(141,200,66,0.12); border: 2px solid var(--green); }
+    .review   .status-icon { background: rgba(239,159,39,0.12); border: 2px solid var(--amber); }
+    .rejected .status-icon { background: rgba(226,75,74,0.12);  border: 2px solid var(--red); }
+    .status-title { font-family: var(--font-display); font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+    .approved .status-title { color: var(--green); }
+    .review   .status-title { color: var(--amber); }
+    .rejected .status-title { color: var(--red); }
+    .status-sub { font-size: 14px; color: var(--text-secondary); }
+
+    /* ── Cards ── */
+    .card { background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 24px 28px; margin-bottom: 16px; }
+    .card-title { font-family: var(--font-display); font-size: 12px; font-weight: 600;
+                  color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;
+                  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+    .row { display: flex; justify-content: space-between; align-items: center;
+           padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .row:last-child { border-bottom: none; }
+    .row-label { font-size: 13px; color: var(--text-secondary); }
+    .row-value { font-size: 13px; color: var(--text-primary); font-weight: 500;
+                 text-align: right; max-width: 60%; }
+
+    /* ── Badges ── */
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px;
+             font-weight: 500; padding: 3px 10px; border-radius: 100px; white-space: nowrap; }
+    .badge-green  { background: var(--green-bg); color: var(--green);
+                    border: 1px solid var(--green-border); }
+    .badge-amber  { background: var(--amber-bg); color: var(--amber);
+                    border: 1px solid var(--amber-border); }
+    .badge-red    { background: var(--red-bg);   color: var(--red);
+                    border: 1px solid var(--red-border); }
+    .badge-blue   { background: var(--accent-glow); color: var(--accent-light);
+                    border: 1px solid rgba(55,138,221,0.25); }
+    .badge-muted  { background: rgba(255,255,255,0.04); color: var(--text-muted);
+                    border: 1px solid var(--border-strong); }
+
+    /* ── Cross-check table ── */
+    .cc-table { width: 100%; border-collapse: collapse; }
+    .cc-table thead th { font-size: 11px; font-weight: 600; color: var(--text-muted);
+                         text-align: left; padding: 0 12px 10px; letter-spacing: 0.4px;
+                         text-transform: uppercase; border-bottom: 1px solid var(--border); }
+    .cc-table thead th:last-child { text-align: center; }
+    .cc-table tbody tr { border-bottom: 1px solid var(--border); }
+    .cc-table tbody tr:last-child { border-bottom: none; }
+    .cc-table tbody td { padding: 11px 12px; font-size: 13px; vertical-align: top; }
+    .cc-field { color: var(--text-secondary); font-weight: 500; white-space: nowrap; }
+    .cc-val { color: var(--text-primary); }
+    .cc-val.empty { color: var(--text-muted); font-style: italic; }
+    .cc-status { text-align: center; }
+    .cc-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* match icons */
+    .icon-match   { color: var(--green); font-size: 16px; }
+    .icon-mismatch{ color: var(--red);   font-size: 16px; }
+    .icon-unknown { color: var(--text-muted); font-size: 15px; }
+
+    /* ── Risk meter ── */
+    .risk-wrap { margin-top: 8px; }
+    .risk-header { display: flex; justify-content: space-between; align-items: center;
+                   margin-bottom: 6px; }
+    .risk-num { font-family: var(--font-display); font-size: 26px; font-weight: 700; }
+    .risk-track { height: 8px; background: var(--border-strong);
+                  border-radius: 8px; overflow: hidden; margin-bottom: 6px; }
+    .risk-fill  { height: 100%; border-radius: 8px; transition: width 0.7s ease; }
+    .risk-axis  { display: flex; justify-content: space-between;
+                  font-size: 11px; color: var(--text-muted); margin-bottom: 16px; }
+
+    .reasons-list { display: flex; flex-direction: column; gap: 7px; }
+    .reason-item { display: flex; align-items: flex-start; gap: 9px;
+                   font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .reason-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+    .reason-dot.red    { background: var(--red); }
+    .reason-dot.amber  { background: var(--amber); }
+
+    /* ── Actions ── */
+    .actions { display: flex; gap: 12px; margin-top: 8px; }
+    .btn-primary { font-family: var(--font-body); font-size: 14px; font-weight: 500;
+                   padding: 11px 28px; background: var(--accent); color: #fff;
+                   border: none; border-radius: var(--radius-md); cursor: pointer;
+                   text-decoration: none; transition: background 0.15s; }
+    .btn-primary:hover { background: var(--accent-light); }
+    .btn-secondary { font-family: var(--font-body); font-size: 14px; font-weight: 500;
+                     padding: 11px 28px; background: transparent; color: var(--text-secondary);
+                     border: 1px solid var(--border-strong); border-radius: var(--radius-md);
+                     cursor: pointer; text-decoration: none; transition: all 0.15s; }
+    .btn-secondary:hover { background: var(--bg-card); color: var(--text-primary); }
+
+    @media (max-width: 600px) {
+      nav { padding: 14px 20px; }
+      .page-wrap { padding: 28px 16px 60px; }
+      .actions { flex-direction: column; }
+      .row { flex-direction: column; align-items: flex-start; gap: 4px; }
+      .row-value { text-align: left; max-width: 100%; }
+      .cc-table thead th:nth-child(2),
+      .cc-table tbody td:nth-child(2) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Verify<span>X</span></a>
+  <a href="/" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Back to home
+  </a>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- Reference row -->
+  <div class="ref-row">
+    <div>
+      <div class="ref-label">Application reference</div>
+      <div class="ref-num">VX-{{ user_id }}-{{ status | upper }}</div>
+    </div>
+    <span class="source-badge">{{ kyc_source }}</span>
+  </div>
+
+  <!-- Dedup alerts -->
+  {% if doc_dup %}
+  <div class="alert alert-red">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M9 2l7 13H2L9 2z" stroke="#E24B4A" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M9 8v3M9 13h.01" stroke="#E24B4A" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <div class="alert-body">
+      <div class="alert-title">Duplicate document detected</div>
+      This document number already exists in our system. The submission has been flagged for manual review.
+    </div>
+  </div>
+  {% endif %}
+
+  {% if mobile_dup %}
+  <div class="alert alert-amber">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M9 2l7 13H2L9 2z" stroke="#EF9F27" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M9 8v3M9 13h.01" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <div class="alert-body">
+      <div class="alert-title">Mobile number already linked to another account</div>
+      The mobile number provided is associated with an existing user. This has been flagged.
+    </div>
+  </div>
+  {% endif %}
+
+  {% if email_dup %}
+  <div class="alert alert-amber">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+      <path d="M9 2l7 13H2L9 2z" stroke="#EF9F27" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M9 8v3M9 13h.01" stroke="#EF9F27" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <div class="alert-body">
+      <div class="alert-title">Email address already linked to another account</div>
+      The email provided is associated with an existing user. This has been flagged.
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Status banner -->
+  {% set status_lower = status | lower %}
+  <div class="status-banner {{ status_lower }}">
+    <div class="status-icon">
+      {% if status_lower == "approved" %}
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M7 14l5 5 9-9" stroke="#8DC842" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      {% elif status_lower == "rejected" %}
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <path d="M8 8l12 12M20 8L8 20" stroke="#E24B4A" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      {% else %}
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <circle cx="14" cy="14" r="10" stroke="#EF9F27" stroke-width="2"/>
+          <path d="M14 9v5l3 3" stroke="#EF9F27" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      {% endif %}
+    </div>
+    <div class="status-title">
+      {% if status_lower == "approved" %}Verification approved
+      {% elif status_lower == "rejected" %}Verification rejected
+      {% else %}Under review{% endif %}
+    </div>
+    <div class="status-sub">
+      {% if status_lower == "approved" %}Your identity has been successfully verified.
+      {% elif status_lower == "rejected" %}Your application could not be verified. Please contact support.
+      {% else %}Your application is being reviewed. You will be notified within 24 hours.{% endif %}
+    </div>
+  </div>
+
+  <!-- Summary -->
+  <div class="card">
+    <div class="card-title">Submission summary</div>
+    <div class="row">
+      <span class="row-label">Full name</span>
+      <span class="row-value">{{ full_name }}</span>
+    </div>
+    <div class="row">
+      <span class="row-label">Submission type</span>
+      <span class="row-value"><span class="badge badge-blue">{{ kyc_source }}</span></span>
+    </div>
+    <div class="row">
+      <span class="row-label">ID type</span>
+      <span class="row-value"><span class="badge badge-blue">{{ id_type | upper }}</span></span>
+    </div>
+    <div class="row">
+      <span class="row-label">ID number</span>
+      <span class="row-value" style="font-family:monospace;">{{ id_number }}</span>
+    </div>
+    <div class="row">
+      <span class="row-label">KYC status</span>
+      <span class="row-value">
+        {% if status_lower == "approved" %}<span class="badge badge-green">{{ status }}</span>
+        {% elif status_lower == "rejected" %}<span class="badge badge-red">{{ status }}</span>
+        {% else %}<span class="badge badge-amber">{{ status }}</span>{% endif %}
+      </span>
+    </div>
+    <div class="row">
+      <span class="row-label">OCR processing</span>
+      <span class="row-value">
+        {% if ocr_success %}<span class="badge badge-green">Completed</span>
+        {% else %}<span class="badge badge-amber">Partial / Failed</span>{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Cross-check table -->
+  <div class="card">
+    <div class="card-title">Identity cross-check — form vs ID document</div>
+
+    {% if not ocr_success %}
+    <div style="display:flex; align-items:center; gap:8px; padding:10px 0 14px;
+                border-bottom:1px solid var(--border); margin-bottom:4px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="6" stroke="#EF9F27" stroke-width="1.2"/>
+        <path d="M7 5v2.5M7 9h.01" stroke="#EF9F27" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:12px; color:var(--amber);">
+        OCR extraction was partial — some comparisons could not be made
+      </span>
+    </div>
+    {% endif %}
+
+    <table class="cc-table">
+      <thead>
+        <tr>
+          <th style="width:120px;">Field</th>
+          <th>{% if kyc_source == "Offline KYC" %}Extracted from form{% else %}Form / entered value{% endif %}</th>
+          <th>Extracted from ID</th>
+          <th style="width:80px;">Match</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Name -->
+        <tr>
+          <td class="cc-field">Full name</td>
+          <td class="cc-val {% if not form_values.name %}empty{% endif %}">
+            {{ form_values.name or "—" }}
+          </td>
+          <td class="cc-val {% if not ocr_values.name %}empty{% endif %}">
+            {{ ocr_values.name or "—" }}
+          </td>
+          <td class="cc-status">
+            {% if cross_checks.name_match is none %}
+              <span class="badge badge-muted">N/A</span>
+            {% elif cross_checks.name_match %}
+              <span class="badge badge-green">✓ Match</span>
+            {% else %}
+              <span class="badge badge-red">✗ Mismatch</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        <!-- DOB -->
+        <tr>
+          <td class="cc-field">Date of birth</td>
+          <td class="cc-val {% if not form_values.dob %}empty{% endif %}">
+            {{ form_values.dob or "—" }}
+          </td>
+          <td class="cc-val {% if not ocr_values.dob %}empty{% endif %}">
+            {{ ocr_values.dob or "—" }}
+          </td>
+          <td class="cc-status">
+            {% if cross_checks.dob_match is none %}
+              <span class="badge badge-muted">N/A</span>
+            {% elif cross_checks.dob_match %}
+              <span class="badge badge-green">✓ Match</span>
+            {% else %}
+              <span class="badge badge-red">✗ Mismatch</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        <!-- Address -->
+        <tr>
+          <td class="cc-field">Address</td>
+          <td class="cc-val {% if not form_values.address %}empty{% endif %}"
+              style="max-width:200px; word-break:break-word;">
+            {{ form_values.address or "—" }}
+          </td>
+          <td class="cc-val {% if not ocr_values.address %}empty{% endif %}"
+              style="max-width:200px; word-break:break-word;">
+            {{ ocr_values.address or "—" }}
+          </td>
+          <td class="cc-status">
+            {% if cross_checks.address_match is none %}
+              <span class="badge badge-muted">N/A</span>
+            {% elif cross_checks.address_match %}
+              <span class="badge badge-green">✓ Match</span>
+            {% else %}
+              <span class="badge badge-amber">~ Partial</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        <!-- ID number -->
+        <tr>
+          <td class="cc-field">ID number</td>
+          <td class="cc-val {% if not form_values.id_number %}empty{% endif %}"
+              style="font-family:monospace;">
+            {{ form_values.id_number or "—" }}
+          </td>
+          <td class="cc-val {% if not ocr_values.id_number %}empty{% endif %}"
+              style="font-family:monospace;">
+            {{ ocr_values.id_number or "—" }}
+          </td>
+          <td class="cc-status">
+            {% if cross_checks.id_number_match is none %}
+              <span class="badge badge-muted">N/A</span>
+            {% elif cross_checks.id_number_match %}
+              <span class="badge badge-green">✓ Match</span>
+            {% else %}
+              <span class="badge badge-red">✗ Mismatch</span>
+            {% endif %}
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- OCR extracted data (all raw fields) -->
+  {% if ocr_name or ocr_dob or ocr_aadhaar or ocr_pan or ocr_address %}
+  <div class="card">
+    <div class="card-title">OCR extracted data (raw)</div>
+    {% if ocr_name %}
+    <div class="row">
+      <span class="row-label">Name from document</span>
+      <span class="row-value">{{ ocr_name }}</span>
+    </div>
+    {% endif %}
+    {% if ocr_dob %}
+    <div class="row">
+      <span class="row-label">Date of birth from document</span>
+      <span class="row-value">{{ ocr_dob }}</span>
+    </div>
+    {% endif %}
+    {% if ocr_aadhaar %}
+    <div class="row">
+      <span class="row-label">Aadhaar number</span>
+      <span class="row-value" style="font-family:monospace;">{{ ocr_aadhaar }}</span>
+    </div>
+    {% endif %}
+    {% if ocr_pan %}
+    <div class="row">
+      <span class="row-label">PAN number</span>
+      <span class="row-value" style="font-family:monospace;">{{ ocr_pan }}</span>
+    </div>
+    {% endif %}
+    {% if ocr_address %}
+    <div class="row" style="align-items:flex-start;">
+      <span class="row-label">Address from document</span>
+      <span class="row-value">{{ ocr_address }}</span>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Risk assessment -->
+  <div class="card">
+    <div class="card-title">Risk assessment</div>
+    {% set risk = risk_score | int %}
+    <div class="risk-wrap">
+      <div class="risk-header">
+        <span style="font-size:13px; color:var(--text-secondary);">Risk score</span>
+        <span class="risk-num" style="color:
+          {% if risk < 30 %}var(--green)
+          {% elif risk < 70 %}var(--amber)
+          {% else %}var(--red){% endif %};">
+          {{ risk }}<span style="font-size:13px; font-weight:400; color:var(--text-muted);">/100</span>
+        </span>
+      </div>
+      <div class="risk-track">
+        <div class="risk-fill" style="width:{{ risk }}%; background:
+          {% if risk < 30 %}var(--green)
+          {% elif risk < 70 %}var(--amber)
+          {% else %}var(--red){% endif %};"></div>
+      </div>
+      <div class="risk-axis"><span>Low risk</span><span>Medium</span><span>High risk</span></div>
+    </div>
+
+    <div class="row" style="margin-bottom: {% if risk_reasons %}14px{% else %}0{% endif %};">
+      <span class="row-label">Risk level</span>
+      <span class="row-value">
+        {% if risk < 30 %}<span class="badge badge-green">Low</span>
+        {% elif risk < 70 %}<span class="badge badge-amber">Medium</span>
+        {% else %}<span class="badge badge-red">High</span>{% endif %}
+      </span>
+    </div>
+
+    <!-- Risk reasons -->
+    {% if risk_reasons %}
+    <div style="padding-top:12px; border-top:1px solid var(--border);">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:10px;
+                  font-weight:600; letter-spacing:0.3px; text-transform:uppercase;">
+        Risk factors
+      </div>
+      <div class="reasons-list">
+        {% for reason in risk_reasons %}
+        <div class="reason-item">
+          <div class="reason-dot {% if 'mismatch' in reason | lower or 'duplicate' in reason | lower %}red{% else %}amber{% endif %}"></div>
+          <span>{{ reason }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="row" style="border-bottom:none;">
+      <span class="row-label">Flags</span>
+      <span class="row-value"><span class="badge badge-green">No issues found</span></span>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Dedup summary -->
+  <div class="card">
+    <div class="card-title">Deduplication checks</div>
+    <div class="row">
+      <span class="row-label">Document number</span>
+      <span class="row-value">
+        {% if doc_dup %}<span class="badge badge-red">Duplicate found</span>
+        {% else %}<span class="badge badge-green">Unique</span>{% endif %}
+      </span>
+    </div>
+    <div class="row">
+      <span class="row-label">Mobile number</span>
+      <span class="row-value">
+        {% if mobile_dup %}<span class="badge badge-amber">Linked to another account</span>
+        {% else %}<span class="badge badge-green">Unique</span>{% endif %}
+      </span>
+    </div>
+    <div class="row">
+      <span class="row-label">Email address</span>
+      <span class="row-value">
+        {% if email_dup %}<span class="badge badge-amber">Linked to another account</span>
+        {% else %}<span class="badge badge-green">Unique</span>{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <a href="/" class="btn-secondary">← Back to home</a>
+    <a href="/kyc-select" class="btn-primary">Submit another application</a>
+  </div>
+
+</div>
+</body>
+</html>

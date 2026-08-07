@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VerifyX — Choose Verification Method</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: #378ADD;
+      --accent-light: #5FA0E8;
+      --accent-glow: rgba(55,138,221,0.15);
+      --vendor: #8B5CF6;
+      --vendor-light: #A78BFA;
+      --vendor-glow: rgba(139,92,246,0.15);
+      --bg: #0A0C10;
+      --bg-surface: #111318;
+      --bg-card: #161A22;
+      --bg-card-hover: #1C2130;
+      --border: rgba(255,255,255,0.08);
+      --border-strong: rgba(255,255,255,0.14);
+      --text-primary: #F0F2F8;
+      --text-secondary: #8A8FA8;
+      --text-muted: #555A70;
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-xl: 22px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text-primary);
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(55,138,221,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(55,138,221,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 48px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,12,16,0.85);
+      backdrop-filter: blur(12px);
+    }
+    .logo { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+    .logo span { color: #BD1616; }
+    .nav-back { font-size: 13px; color: var(--text-secondary); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+    .nav-back:hover { color: var(--text-primary); }
+
+    .page-wrap {
+      position: relative; z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 52px 24px 64px;
+    }
+
+    .page-wrap::before {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(55,138,221,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      transition: background 0.5s;
+    }
+    .page-wrap.vendor-mode::before {
+      background: radial-gradient(ellipse, rgba(139,92,246,0.07) 0%, transparent 70%);
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 36px;
+      position: relative;
+    }
+    .step-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 11px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;
+      color: var(--accent);
+      background: var(--accent-glow);
+      border: 1px solid rgba(55,138,221,0.2);
+      padding: 5px 14px; border-radius: 100px;
+      margin-bottom: 20px;
+      transition: all 0.35s;
+    }
+    .step-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; animation: pulse 2s infinite; transition: background 0.35s; }
+    .vendor-mode .step-pill { color: var(--vendor-light); background: var(--vendor-glow); border-color: rgba(139,92,246,0.2); }
+    .vendor-mode .step-pill::before { background: var(--vendor); }
+
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.4; transform:scale(0.7); } }
+
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(26px, 4vw, 40px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      margin-bottom: 10px;
+      transition: color 0.3s;
+    }
+    .page-header p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      max-width: 420px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    /* ── KYC Type Toggle ── */
+    .type-toggle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+    .toggle-label { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); }
+    .type-toggle {
+      display: flex;
+      background: var(--bg-card);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-xl);
+      padding: 4px;
+      gap: 4px;
+      position: relative;
+    }
+    .toggle-tab {
+      position: relative; z-index: 1;
+      display: flex; align-items: center; gap: 9px;
+      padding: 10px 26px;
+      border-radius: calc(var(--radius-xl) - 4px);
+      font-family: var(--font-display);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      border: none; background: transparent;
+      color: var(--text-muted);
+      transition: color 0.25s;
+      white-space: nowrap;
+    }
+    .toggle-tab.active-individual { color: var(--accent); }
+    .toggle-tab.active-vendor { color: var(--vendor-light); }
+    .toggle-glider {
+      position: absolute;
+      top: 4px; left: 4px;
+      height: calc(100% - 8px);
+      border-radius: calc(var(--radius-xl) - 6px);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      transition: left 0.3s cubic-bezier(0.4,0,0.2,1), width 0.3s cubic-bezier(0.4,0,0.2,1);
+      pointer-events: none;
+    }
+    .toggle-tab-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .tab-individual .toggle-tab-icon { background: rgba(55,138,221,0.12); border: 1px solid rgba(55,138,221,0.2); }
+    .tab-vendor .toggle-tab-icon { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.2); }
+
+    /* ── Cards ── */
+    .cards-section { width: 100%; max-width: 860px; position: relative; }
+
+    .kyc-panel { display: none; }
+    .kyc-panel.active {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    .divider-or {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-strong);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+
+    .option-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px 32px 32px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      transition: border-color 0.25s, background 0.25s, transform 0.2s;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    .option-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .option-card:hover { border-color: var(--border-strong); background: var(--bg-card-hover); transform: translateY(-3px); }
+    .option-card:hover::after { transform: scaleX(1); }
+
+    /* Individual cards */
+    .individual-panel .option-card.recommended { border-color: rgba(55,138,221,0.3); }
+    .individual-panel .option-card::after { background: var(--accent); }
+    /* Vendor cards */
+    .vendor-panel .option-card.recommended { border-color: rgba(139,92,246,0.3); }
+    .vendor-panel .option-card::after { background: var(--vendor); }
+
+    .rec-badge {
+      position: absolute;
+      top: 16px; right: 16px;
+      font-size: 10px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .individual-panel .rec-badge { background: var(--accent-glow); color: var(--accent-light); border: 1px solid rgba(55,138,221,0.25); }
+    .vendor-panel .rec-badge { background: var(--vendor-glow); color: var(--vendor-light); border: 1px solid rgba(139,92,246,0.25); }
+
+    .card-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 22px;
+      transition: transform 0.2s;
+    }
+    .option-card:hover .card-icon { transform: scale(1.05); }
+    .icon-blue   { background: rgba(55,138,221,0.12); border: 1px solid rgba(55,138,221,0.2); }
+    .icon-teal   { background: rgba(29,158,117,0.12); border: 1px solid rgba(29,158,117,0.2); }
+    .icon-purple { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.2); }
+    .icon-amber  { background: rgba(239,159,39,0.12); border: 1px solid rgba(239,159,39,0.2); }
+
+    .card-tag { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+    .card-title { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 10px; color: var(--text-primary); }
+    .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.65; margin-bottom: 24px; flex: 1; }
+
+    .feature-list { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+    .feature-list li { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--text-secondary); }
+    .feature-list li::before {
+      content: '';
+      width: 16px; height: 16px; border-radius: 50%;
+      background: rgba(141,200,66,0.1); border: 1px solid rgba(141,200,66,0.2);
+      flex-shrink: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='8' height='8' viewBox='0 0 8 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 4l2 2 3-3' stroke='%238DC842' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: center;
+    }
+
+    .card-time { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-muted); margin-bottom: 20px; }
+
+    .card-btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      font-family: var(--font-body);
+      font-size: 14px; font-weight: 500;
+      text-decoration: none;
+      transition: all 0.15s;
+      border: none; cursor: pointer; width: 100%;
+    }
+    .btn-filled-blue { background: var(--accent); color: #fff; }
+    .btn-filled-blue:hover { background: var(--accent-light); }
+    .btn-filled-purple { background: var(--vendor); color: #fff; }
+    .btn-filled-purple:hover { background: var(--vendor-light); }
+    .btn-outline { background: transparent; color: var(--text-primary); border: 1px solid var(--border-strong); }
+    .btn-outline:hover { background: var(--bg-surface); border-color: var(--accent); color: var(--accent); }
+    .btn-outline-vendor:hover { border-color: var(--vendor); color: var(--vendor-light); }
+    .card-btn svg { transition: transform 0.2s; }
+    .option-card:hover .card-btn svg { transform: translateX(3px); }
+
+    /* ── Vendor Info Bar ── */
+    .vendor-info-bar {
+      background: var(--vendor-glow);
+      border: 1px solid rgba(139,92,246,0.2);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-bottom: 20px;
+      font-size: 13px; color: var(--vendor-light);
+      line-height: 1.5;
+    }
+
+    /* ── Info strip ── */
+    .info-strip {
+      display: flex; align-items: center; justify-content: center; gap: 32px;
+      margin-top: 40px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+      width: 100%;
+      max-width: 860px;
+    }
+    .info-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+
+    @media (max-width: 640px) {
+      nav { padding: 14px 20px; }
+      .kyc-panel.active { grid-template-columns: 1fr; }
+      .divider-or { display: none; }
+      .page-wrap { padding: 32px 16px; justify-content: flex-start; }
+      .info-strip { flex-direction: column; gap: 14px; align-items: flex-start; }
+      .toggle-tab { padding: 9px 18px; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Verify<span>X</span></a>
+  <a href="/" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to home
+  </a>
+</nav>
+
+<div class="page-wrap" id="pageWrap">
+
+  <div class="page-header">
+    <div class="step-pill" id="stepPill">Identity verification</div>
+    <h1 id="pageTitle">How would you like<br>to verify?</h1>
+    <p id="pageDesc">Choose your KYC type and the submission method that works best for you.</p>
+  </div>
+
+  <!-- KYC Type Toggle -->
+  <div class="type-toggle-wrap">
+    <div class="toggle-label">KYC type</div>
+    <div class="type-toggle" id="typeToggle">
+      <div class="toggle-glider" id="glider"></div>
+      <button class="toggle-tab tab-individual active-individual" id="tabIndividual" onclick="switchType('individual')">
+        <div class="toggle-tab-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="5.5" r="2.5" stroke="#378ADD" stroke-width="1.3"/><path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" stroke="#378ADD" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </div>
+        Individual / Customer KYC
+      </button>
+      <button class="toggle-tab tab-vendor" id="tabVendor" onclick="switchType('vendor')">
+        <div class="toggle-tab-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="4" width="11" height="8" rx="1.5" stroke="#8B5CF6" stroke-width="1.3"/><path d="M4.5 4V3a2.5 2.5 0 015 0v1" stroke="#8B5CF6" stroke-width="1.3" stroke-linecap="round"/><path d="M5 8h4M5 10h2" stroke="#8B5CF6" stroke-width="1.1" stroke-linecap="round"/></svg>
+        </div>
+        Vendor / Business KYC
+      </button>
+    </div>
+  </div>
+
+  <div class="cards-section">
+
+    <!-- Individual Panel -->
+    <div class="kyc-panel individual-panel active" id="individualPanel">
+      <div class="divider-or">or</div>
+
+      <!-- eKYC -->
+      <a href="/ekyc" class="option-card recommended">
+        <div class="rec-badge">Recommended</div>
+        <div class="card-icon icon-blue">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <rect x="3" y="6" width="20" height="14" rx="3" stroke="#378ADD" stroke-width="1.5"/>
+            <circle cx="9" cy="13" r="2.5" stroke="#378ADD" stroke-width="1.5"/>
+            <path d="M14 11h5M14 14h3" stroke="#378ADD" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-tag">Digital</div>
+        <div class="card-title">eKYC — online form</div>
+        <div class="card-desc">Fill out your details digitally. Upload document photos directly from your device. Fastest way to get verified.</div>
+        <ul class="feature-list">
+          <li>Step-by-step guided form</li>
+          <li>Camera capture or file upload</li>
+          <li>Real-time validation</li>
+          <li>Instant submission confirmation</li>
+        </ul>
+        <div class="card-time">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#555A70" stroke-width="1.2"/><path d="M6.5 4v3l2 1.5" stroke="#555A70" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Takes about 3–5 minutes
+        </div>
+        <div class="card-btn btn-filled-blue">
+          Start eKYC
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </a>
+
+      <!-- Offline -->
+      <a href="/offline-kyc" class="option-card">
+        <div class="card-icon icon-teal">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <path d="M15 3H7a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" stroke="#1D9E75" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M15 3v6h6" stroke="#1D9E75" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M9 13h8M9 17h5" stroke="#1D9E75" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-tag">Physical</div>
+        <div class="card-title">Offline — scanned form</div>
+        <div class="card-desc">Already filled your KYC form on paper? Upload the PDF along with your ID proof. Simple two-file submission.</div>
+        <ul class="feature-list">
+          <li>Upload scanned KYC form (PDF)</li>
+          <li>Upload ID proof document</li>
+          <li>No typing required</li>
+          <li>Processed within 24–48 hours</li>
+        </ul>
+        <div class="card-time">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#555A70" stroke-width="1.2"/><path d="M6.5 4v3l2 1.5" stroke="#555A70" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Takes about 2 minutes to submit
+        </div>
+        <div class="card-btn btn-outline">
+          Upload documents
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </a>
+    </div>
+
+    <!-- Vendor Panel -->
+    <div class="kyc-panel vendor-panel" id="vendorPanel">
+      <div class="divider-or">or</div>
+
+      <!-- Vendor eKYC -->
+      <a href="/vendor-ekyc" class="option-card recommended">
+        <div class="rec-badge">Recommended</div>
+        <div class="card-icon icon-purple">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <rect x="3" y="7" width="20" height="13" rx="2.5" stroke="#8B5CF6" stroke-width="1.5"/>
+            <path d="M8 7V5.5A2.5 2.5 0 0110.5 3h5A2.5 2.5 0 0118 5.5V7" stroke="#8B5CF6" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M9 14h8M9 17.5h5" stroke="#8B5CF6" stroke-width="1.3" stroke-linecap="round"/>
+            <circle cx="13" cy="11" r="1.5" stroke="#8B5CF6" stroke-width="1.3"/>
+          </svg>
+        </div>
+        <div class="card-tag">Digital · Business</div>
+        <div class="card-title">Vendor eKYC</div>
+        <div class="card-desc">Online business verification with GST, PAN, Aadhaar, and bank account details. Fastest route to approval.</div>
+        <ul class="feature-list">
+          <li>GSTIN & PAN verification</li>
+          <li>Authorised signatory Aadhaar</li>
+          <li>Bank account & cancelled cheque</li>
+          <li>Digital document upload</li>
+        </ul>
+        <div class="card-time">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#555A70" stroke-width="1.2"/><path d="M6.5 4v3l2 1.5" stroke="#555A70" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Takes about 7–10 minutes
+        </div>
+        <div class="card-btn btn-filled-purple">
+          Start Vendor eKYC
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </a>
+
+      <!-- Vendor Offline -->
+      <a href="/vendor-offline-kyc" class="option-card">
+        <div class="card-icon icon-amber">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <path d="M15 3H7a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9l-6-6z" stroke="#EF9F27" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M15 3v6h6" stroke="#EF9F27" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M9 13h8M9 17h5M9 10h4" stroke="#EF9F27" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-tag">Physical · Business</div>
+        <div class="card-title">Offline Vendor KYC</div>
+        <div class="card-desc">Have your business KYC form ready? Upload scanned copies of all required documents — GST, PAN, Aadhaar & bank proof.</div>
+        <ul class="feature-list">
+          <li>Upload signed KYC form PDF</li>
+          <li>GST certificate & PAN card</li>
+          <li>Cancelled cheque upload</li>
+          <li>Processed within 48–72 hours</li>
+        </ul>
+        <div class="card-time">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" stroke="#555A70" stroke-width="1.2"/><path d="M6.5 4v3l2 1.5" stroke="#555A70" stroke-width="1.2" stroke-linecap="round"/></svg>
+          Takes about 3–4 minutes to submit
+        </div>
+        <div class="card-btn btn-outline btn-outline-vendor">
+          Upload business documents
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+      </a>
+    </div>
+
+  </div>
+
+  <div class="info-strip">
+    <div class="info-item">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1l4 2v4c0 2.8-1.8 5.2-4 6C4.8 12.2 3 9.8 3 7V3l4-2z" stroke="#555A70" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      AES-256 encrypted uploads
+    </div>
+    <div class="info-item">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="4" width="12" height="8" rx="1.5" stroke="#555A70" stroke-width="1.2"/><path d="M4 4V3a3 3 0 016 0v1" stroke="#555A70" stroke-width="1.2" stroke-linecap="round"/></svg>
+      DPDP Act 2023 compliant
+    </div>
+    <div class="info-item">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#555A70" stroke-width="1.2"/><path d="M7 4v3l2 2" stroke="#555A70" stroke-width="1.2" stroke-linecap="round"/></svg>
+      Data retained per RBI norms
+    </div>
+    <div class="info-item">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7l3 3 7-6" stroke="#555A70" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      SOC 2 Type II certified
+    </div>
+  </div>
+
+</div>
+
+<script>
+  var currentType = 'individual';
+
+  function switchType(type) {
+    if (currentType === type) return;
+    currentType = type;
+
+    var pageWrap    = document.getElementById('pageWrap');
+    var stepPill    = document.getElementById('stepPill');
+    var tabInd      = document.getElementById('tabIndividual');
+    var tabVen      = document.getElementById('tabVendor');
+    var indPanel    = document.getElementById('individualPanel');
+    var venPanel    = document.getElementById('vendorPanel');
+    var glider      = document.getElementById('glider');
+
+    if (type === 'individual') {
+      pageWrap.classList.remove('vendor-mode');
+      stepPill.textContent = 'Identity verification';
+      tabInd.classList.add('active-individual');
+      tabInd.classList.remove('active-vendor');
+      tabVen.classList.remove('active-individual', 'active-vendor');
+      indPanel.classList.add('active');
+      venPanel.classList.remove('active');
+      // Move glider to left tab
+      glider.style.left = '4px';
+      glider.style.width = tabInd.offsetWidth + 'px';
+    } else {
+      pageWrap.classList.add('vendor-mode');
+      stepPill.textContent = 'Business verification';
+      tabVen.classList.add('active-vendor');
+      tabVen.classList.remove('active-individual');
+      tabInd.classList.remove('active-individual', 'active-vendor');
+      venPanel.classList.add('active');
+      indPanel.classList.remove('active');
+      // Move glider to right tab
+      glider.style.left = (tabInd.offsetWidth + 8) + 'px';
+      glider.style.width = tabVen.offsetWidth + 'px';
+    }
+  }
+
+  // Init glider position
+  window.addEventListener('load', function() {
+    var tabInd = document.getElementById('tabIndividual');
+    var glider = document.getElementById('glider');
+    glider.style.left = '4px';
+    glider.style.width = tabInd.offsetWidth + 'px';
+  });
+</script>
+</body>
+</html>
