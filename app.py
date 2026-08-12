@@ -156,6 +156,7 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
     access_token = token_body.get("access_token")
     id_token = token_body.get("id_token")
     claims = digilocker.decode_id_token_claims(id_token) if id_token else {}
+    print(f"🔍 FULL CLAIMS: {claims}")
 
     dl_name = claims.get("given_name") or claims.get("name")
     dl_dob = claims.get("birthdate")
