@@ -298,6 +298,9 @@ def debug_applications(db: Session = Depends(get_db)):
             eaadhaar_available: {a.digilocker_eaadhaar_available}<br>
             scope: {a.digilocker_scope}<br><br>
 
+            <u>Full decoded id_token claims</u><br>
+            {"<br>".join(f"{k}: {v}" for k, v in (digilocker.decode_id_token_claims(a.digilocker_id_token).items() if a.digilocker_id_token else {}))}<br><br>
+
             <u>eAadhaar / OCR extracted data</u><br>
             ocr_success: {a.ocr_success}<br>
             ocr_name: {a.ocr_name} | ocr_dob: {a.ocr_dob}<br>
