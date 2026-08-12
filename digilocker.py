@@ -92,7 +92,11 @@ async def exchange_code_for_token(code: str, code_verifier: str) -> dict:
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-    resp.raise_for_status()
+    if resp.status_code != 200:
+        # Surface DigiLocker's actual error instead of a bare 400 crash,
+        # so we can see error/error_description in Render logs.
+        print(f"🔑 TOKEN EXCHANGE FAILED: {resp.status_code} — {resp.text}")
+        raise RuntimeError(f"DigiLocker token exchange failed ({resp.status_code}): {resp.text}")
     return resp.json()
 
 
