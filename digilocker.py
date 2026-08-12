@@ -71,6 +71,7 @@ def build_authorize_url(state: str, challenge: str) -> str:
         "state": state,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
+        "scope": "avs",
     }
     query = "&".join(f"{k}={v}" for k, v in params.items())
     return f"{AUTHORIZE_URL}?{query}"
@@ -254,3 +255,4 @@ def status_from_risk(score: int) -> str:
     if score >= 25:
         return "review"
     return "approved"
+
