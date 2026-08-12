@@ -278,6 +278,91 @@ def results(app_id: str, request: Request, db: Session = Depends(get_db)):
     }
     return templates.TemplateResponse(request, "results.html", context)
 
+@app.get("/debug/applications", response_class=HTMLResponse)
+def debug_applications(db: Session = Depends(get_db)):
+    applications = crud.get_all_kyc_applications(db)
+
+    html = ["<div style='font-family:monospace; background:#0A0C10; color:#F0F2F8; padding:20px;'>"]
+    html.append(f"<h1>All KYC Applications ({len(applications)})</h1>")
+
+    if not applications:
+        html.append("<p>No applications yet.</p>")
+
+    for a in applications:
+        html.append(f"""
+        <div style='border:1px solid #378ADD; padding:16px; margin-bottom:16px; border-radius:8px;'>
+            <strong>{a.id}</strong> — {a.created_at} — <strong>{a.status.upper()}</strong> ({a.kyc_source})<br><br>
+
+            <u>Form data (as submitted)</u><br>
+            name: {a.full_name} | dob: {a.dob} | mobile: {a.mobile} | email: {a.email}<br>
+            id_type: {a.id_type} | id_number: {a.id_number}<br>
+            address: {a.perm_address_line1}, {a.perm_city}, {a.perm_state} {a.perm_pin}<br><br>
+
+            <u>DigiLocker token response (raw)</u><br>
+            digilocker_name: {a.digilocker_name} | digilocker_dob: {a.digilocker_dob} | digilocker_gender: {a.digilocker_gender}<br>
+            eaadhaar_available: {a.digilocker_eaadhaar_available}<br>
+            scope: {a.digilocker_scope}<br><br>
+
+            <u>eAadhaar / OCR extracted data</u><br>
+            ocr_success: {a.ocr_success}<br>
+            ocr_name: {a.ocr_name} | ocr_dob: {a.ocr_dob}<br>
+            ocr_aadhaar: {a.ocr_aadhaar} | ocr_pan: {a.ocr_pan}<br>
+            ocr_address: {a.ocr_address}<br><br>
+
+            <u>Cross-check results</u><br>
+            name_match: {a.name_match} | dob_match: {a.dob_match} |
+            address_match: {a.address_match} | id_number_match: {a.id_number_match}<br><br>
+
+            <u>Risk</u><br>
+            score: {a.risk_score} | reasons: {a.risk_reasons}
+        </div>
+        """)
+
+    html.append("</div>")
+    return "".join(html)
+
+@app.get("/debug/applications", response_class=HTMLResponse)
+def debug_applications(db: Session = Depends(get_db)):
+    applications = crud.get_all_kyc_applications(db)
+
+    html = ["<div style='font-family:monospace; background:#0A0C10; color:#F0F2F8; padding:20px;'>"]
+    html.append(f"<h1>All KYC Applications ({len(applications)})</h1>")
+
+    if not applications:
+        html.append("<p>No applications yet.</p>")
+
+    for a in applications:
+        html.append(f"""
+        <div style='border:1px solid #378ADD; padding:16px; margin-bottom:16px; border-radius:8px;'>
+            <strong>{a.id}</strong> — {a.created_at} — <strong>{a.status.upper()}</strong> ({a.kyc_source})<br><br>
+
+            <u>Form data (as submitted)</u><br>
+            name: {a.full_name} | dob: {a.dob} | mobile: {a.mobile} | email: {a.email}<br>
+            id_type: {a.id_type} | id_number: {a.id_number}<br>
+            address: {a.perm_address_line1}, {a.perm_city}, {a.perm_state} {a.perm_pin}<br><br>
+
+            <u>DigiLocker token response (raw)</u><br>
+            digilocker_name: {a.digilocker_name} | digilocker_dob: {a.digilocker_dob} | digilocker_gender: {a.digilocker_gender}<br>
+            eaadhaar_available: {a.digilocker_eaadhaar_available}<br>
+            scope: {a.digilocker_scope}<br><br>
+
+            <u>eAadhaar / OCR extracted data</u><br>
+            ocr_success: {a.ocr_success}<br>
+            ocr_name: {a.ocr_name} | ocr_dob: {a.ocr_dob}<br>
+            ocr_aadhaar: {a.ocr_aadhaar} | ocr_pan: {a.ocr_pan}<br>
+            ocr_address: {a.ocr_address}<br><br>
+
+            <u>Cross-check results</u><br>
+            name_match: {a.name_match} | dob_match: {a.dob_match} |
+            address_match: {a.address_match} | id_number_match: {a.id_number_match}<br><br>
+
+            <u>Risk</u><br>
+            score: {a.risk_score} | reasons: {a.risk_reasons}
+        </div>
+        """)
+
+    html.append("</div>")
+    return "".join(html)
 
 if __name__ == "__main__":
     import os
