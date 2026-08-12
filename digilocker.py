@@ -119,7 +119,9 @@ async def fetch_eaadhaar_xml(access_token: str) -> str | None:
             headers={"Authorization": f"Bearer {access_token}"},
         )
     if resp.status_code != 200:
+        print(f"📄 EAADHAAR XML FETCH FAILED: {resp.status_code} — {resp.text}")
         return None
+    print(f"📄 EAADHAAR XML FETCH OK: {resp.text}")
     return resp.text
 
 
