@@ -32,7 +32,6 @@ import re
 import secrets
 import xml.etree.ElementTree as ET
 from datetime import datetime
-
 import httpx
 
 CLIENT_ID = os.environ.get("DIGILOCKER_CLIENT_ID")
@@ -63,7 +62,7 @@ def generate_pkce_pair() -> tuple[str, str]:
     return verifier, challenge
 
 
-def build_authorize_url(state: str, challenge: str, scope: str = "openid") -> str:
+def build_authorize_url(state: str, challenge: str) -> str:
     require_config()
     params = {
         "response_type": "code",
@@ -72,7 +71,6 @@ def build_authorize_url(state: str, challenge: str, scope: str = "openid") -> st
         "state": state,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
-        "scope": scope,
     }
     query = "&".join(f"{k}={v}" for k, v in params.items())
     return f"{AUTHORIZE_URL}?{query}"
