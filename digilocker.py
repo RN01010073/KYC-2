@@ -71,7 +71,7 @@ def build_authorize_url(state: str, challenge: str) -> str:
         "state": state,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
-        "scope": "avs",
+        "scope": "openid",
     }
     query = "&".join(f"{k}={v}" for k, v in params.items())
     return f"{AUTHORIZE_URL}?{query}"
