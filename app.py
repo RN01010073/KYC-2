@@ -165,10 +165,17 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
     ocr_success = bool(claims)
     ocr_name = dl_name
     ocr_dob = dl_dob
-    ocr_address = claims.get("address")
     ocr_aadhaar = claims.get("masked_aadhaar")
     ocr_pan = claims.get("pan_number")
 
+    # Address doesn't come through the id_token claims - it only comes from
+    # the eAadhaar XML document itself, so fetch that separately when available.
+    ocr_address = None
+    if eaadhaar_available and access_token:
+        xml_text = await digilocker.fetch_eaadhaar_xml(access_token)
+        if xml_text:
+            parsed = digilocker.parse_eaadhaar_xml(xml_text)
+            ocr_address = parsed.get("address")
     form_values = {
         "name": pending.full_name,
         "dob": pending.dob,
