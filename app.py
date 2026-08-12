@@ -168,16 +168,11 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
     ocr_aadhaar = claims.get("masked_aadhaar")
     ocr_pan = claims.get("pan_number")
 
-    # Address doesn't come through the id_token claims - it only comes from
-    # the eAadhaar XML document itself, so fetch that separately when available.
+    # Aadhaar document access requires separate UIDAI-level approval beyond
+    # standard API Setu partner registration - not available at our current
+    # tier, so eAadhaar XML fetch is skipped. PAN + DL cover identity
+    # verification; address cross-check is not available from DigiLocker.
     ocr_address = None
-    raw_eaadhaar_xml = None
-    if eaadhaar_available and access_token:
-        xml_text = await digilocker.fetch_eaadhaar_xml(access_token)
-        raw_eaadhaar_xml = xml_text
-        if xml_text:
-            parsed = digilocker.parse_eaadhaar_xml(xml_text)
-            ocr_address = parsed.get("address")
     form_values = {
         "name": pending.full_name,
         "dob": pending.dob,
@@ -306,6 +301,9 @@ def debug_applications(db: Session = Depends(get_db)):
             digilocker_name: {a.digilocker_name} | digilocker_dob: {a.digilocker_dob} | digilocker_gender: {a.digilocker_gender}<br>
             eaadhaar_available: {a.digilocker_eaadhaar_available}<br>
             scope: {a.digilocker_scope}<br><br>
+
+            <u>Full decoded id_token claims</u><br>
+            {"<br>".join(f"{k}: {v}" for k, v in (digilocker.decode_id_token_claims(a.digilocker_id_token).items() if a.digilocker_id_token else {}))}<br><br>
 
             <u>eAadhaar / OCR extracted data</u><br>
             ocr_success: {a.ocr_success}<br>
