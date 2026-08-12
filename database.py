@@ -7,8 +7,8 @@ project. On Render: Dashboard -> your service -> Environment -> add
 DATABASE_URL with your Supabase pooled connection string.
 
 Locally: create a `.env` file (already in .gitignore) with:
-    DATABASE_URL=postgresql://postgres.cazpwlosqrwqjegzppqt:NangiaJul2026@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
-"""
+    DATABASE_URL=postgresql://postgres.vrxmrwyyijgiyznyxcya:Nangia%40August%40@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres
+    """
 
 import os
 
