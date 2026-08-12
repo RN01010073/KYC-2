@@ -46,3 +46,6 @@ def create_kyc_application(db: Session, **fields) -> KYCApplication:
 
 def get_kyc_application(db: Session, app_id: str) -> KYCApplication | None:
     return db.query(KYCApplication).filter(KYCApplication.id == app_id).first()
+
+def get_all_kyc_applications(db: Session):
+    return db.query(KYCApplication).order_by(KYCApplication.created_at.desc()).all()
