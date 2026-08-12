@@ -153,26 +153,21 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
 
     token_body = await digilocker.exchange_code_for_token(code, pending.code_verifier)
 
-    dl_name = token_body.get("name")
-    dl_dob = token_body.get("dob")
-    dl_gender = token_body.get("gender")
-    eaadhaar_available = token_body.get("eaadhaar") == "Y"
     access_token = token_body.get("access_token")
+    id_token = token_body.get("id_token")
+    claims = digilocker.decode_id_token_claims(id_token) if id_token else {}
 
-    ocr_success = False
-    ocr_name, ocr_dob, ocr_address, ocr_aadhaar, ocr_pan = dl_name, dl_dob, None, None, None
+    dl_name = claims.get("given_name") or claims.get("name")
+    dl_dob = claims.get("birthdate")
+    dl_gender = claims.get("gender")
+    eaadhaar_available = bool(claims.get("masked_aadhaar"))
 
-    if eaadhaar_available and access_token:
-        xml_text = await digilocker.fetch_eaadhaar_xml(access_token)
-        if xml_text:
-            parsed = digilocker.parse_eaadhaar_xml(xml_text)
-            ocr_name = parsed.get("name") or dl_name
-            ocr_dob = parsed.get("dob") or dl_dob
-            ocr_address = parsed.get("address")
-            ocr_aadhaar = parsed.get("masked_aadhaar")
-            ocr_success = True
-    elif dl_name:
-        ocr_success = True
+    ocr_success = bool(claims)
+    ocr_name = dl_name
+    ocr_dob = dl_dob
+    ocr_address = claims.get("address")
+    ocr_aadhaar = claims.get("masked_aadhaar")
+    ocr_pan = claims.get("pan_number")
 
     form_values = {
         "name": pending.full_name,
