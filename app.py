@@ -204,6 +204,7 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
         perm_city=pending.perm_city, perm_state=pending.perm_state,
         perm_pin=pending.perm_pin, perm_country=pending.perm_country,
         id_type=pending.id_type, id_number=pending.id_number,
+        aadhaar_linked_mobile=pending.aadhaar_linked_mobile,
         occupation=pending.occupation, annual_income=pending.annual_income,
         source_of_funds=pending.source_of_funds, pep_status=pending.pep_status,
         id_proof_front_path=pending.id_proof_front_path, id_proof_back_path=pending.id_proof_back_path,

@@ -113,6 +113,7 @@ class KYCApplication(Base):
 
     id_type = Column(String)
     id_number = Column(String, index=True)
+    aadhaar_linked_mobile = Column(String)
 
     occupation = Column(String)
     annual_income = Column(String)
