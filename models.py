@@ -144,6 +144,7 @@ class KYCApplication(Base):
     ocr_dob = Column(String)
     ocr_aadhaar = Column(String)  # masked - see digilocker.py
     ocr_pan = Column(String)
+    ocr_dl = Column(String)  # from id_token's "driving_licence" claim
     ocr_address = Column(Text)
 
     # ── Cross-check results (form vs DigiLocker data) ──

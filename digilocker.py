@@ -166,6 +166,13 @@ def _normalize(s: str | None) -> str:
     return re.sub(r"\s+", " ", s.strip().lower())
 
 
+def _normalize_id(s: str | None) -> str:
+    """Uppercase + strip whitespace, for comparing PAN/DL numbers verbatim."""
+    if not s:
+        return ""
+    return re.sub(r"\s+", "", s.strip().upper())
+
+
 def _normalize_date(s: str | None) -> str:
     """Normalize either YYYY-MM-DD (HTML date input) or DD-MM-YYYY (UIDAI) to YYYY-MM-DD."""
     if not s:
@@ -201,17 +208,29 @@ def cross_check(form_values: dict, ocr_values: dict) -> dict:
     else:
         checks["address_match"] = None
 
-    # id_number_match only meaningful when the form ID type is Aadhaar and we
-    # have a masked UID to compare the last 4 digits against.
-    if (
-        form_values.get("id_type") == "aadhaar"
-        and form_values.get("id_number")
-        and ocr_values.get("masked_aadhaar")
-    ):
-        form_last4 = re.sub(r"\D", "", form_values["id_number"])[-4:]
+    # id_number_match is computed differently per ID type, since DigiLocker
+    # gives us the Aadhaar number masked (so we can only compare last 4
+    # digits) but returns PAN and driving-licence numbers in full (so we can
+    # compare them directly, case/space-insensitively).
+    id_type = (form_values.get("id_type") or "").lower()
+    form_id_number = form_values.get("id_number")
+
+    if id_type == "aadhaar" and form_id_number and ocr_values.get("masked_aadhaar"):
+        form_last4 = re.sub(r"\D", "", form_id_number)[-4:]
         ocr_last4 = ocr_values["masked_aadhaar"][-4:]
         checks["id_number_match"] = form_last4 == ocr_last4
+    elif id_type == "pan" and form_id_number and ocr_values.get("pan_number"):
+        checks["id_number_match"] = (
+            _normalize_id(form_id_number) == _normalize_id(ocr_values["pan_number"])
+        )
+    elif id_type == "dl" and form_id_number and ocr_values.get("driving_licence"):
+        checks["id_number_match"] = (
+            _normalize_id(form_id_number) == _normalize_id(ocr_values["driving_licence"])
+        )
     else:
+        # Either an ID type we don't cross-check yet, or DigiLocker simply
+        # didn't have that document linked/pulled for this user - N/A, not
+        # a mismatch.
         checks["id_number_match"] = None
 
     return checks
@@ -261,4 +280,3 @@ def status_from_risk(score: int) -> str:
     if score >= 25:
         return "review"
     return "approved"
-

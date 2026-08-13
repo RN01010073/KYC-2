@@ -325,6 +325,32 @@
     </div>
     {% endif %}
 
+    {% if not digilocker_verifies_id_number %}
+    <div style="display:flex; align-items:center; gap:8px; padding:10px 0 14px;
+                border-bottom:1px solid var(--border); margin-bottom:4px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="6" stroke="#8A8FA8" stroke-width="1.2"/>
+        <path d="M7 5v2.5M7 9h.01" stroke="#8A8FA8" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:12px; color:var(--text-secondary);">
+        DigiLocker verification doesn't cover {{ id_type | upper }} yet — the ID number row
+        below can't be cross-checked
+      </span>
+    </div>
+    {% elif cross_checks.id_number_match is none %}
+    <div style="display:flex; align-items:center; gap:8px; padding:10px 0 14px;
+                border-bottom:1px solid var(--border); margin-bottom:4px;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <circle cx="7" cy="7" r="6" stroke="#8A8FA8" stroke-width="1.2"/>
+        <path d="M7 5v2.5M7 9h.01" stroke="#8A8FA8" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      <span style="font-size:12px; color:var(--text-secondary);">
+        This applicant's {{ id_type | upper }} isn't linked in their DigiLocker account, so it
+        couldn't be cross-checked
+      </span>
+    </div>
+    {% endif %}
+
     <table class="cc-table">
       <thead>
         <tr>
@@ -425,7 +451,7 @@
   </div>
 
   <!-- Digilocker extracted data (all raw fields) -->
-  {% if ocr_name or ocr_dob or ocr_aadhaar or ocr_pan or ocr_address %}
+  {% if ocr_name or ocr_dob or ocr_aadhaar or ocr_pan or ocr_dl or ocr_address %}
   <div class="card">
     <div class="card-title">Digilocker extracted data (raw)</div>
     {% if ocr_name %}
@@ -450,6 +476,12 @@
     <div class="row">
       <span class="row-label">PAN number</span>
       <span class="row-value" style="font-family:monospace;">{{ ocr_pan }}</span>
+    </div>
+    {% endif %}
+    {% if ocr_dl %}
+    <div class="row">
+      <span class="row-label">Driving licence number</span>
+      <span class="row-value" style="font-family:monospace;">{{ ocr_dl }}</span>
     </div>
     {% endif %}
     {% if ocr_address %}
