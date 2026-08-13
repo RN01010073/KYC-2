@@ -230,7 +230,10 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
 
     crud.delete_pending_session(db, pending)
 
-    return RedirectResponse(f"/results/{application.id}", status_code=303)
+    response = RedirectResponse(f"/results/{application.id}", status_code=303)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 
 # ────────────────────────────────────────────────────────────────────────
@@ -295,7 +298,10 @@ def results(app_id: str, request: Request, db: Session = Depends(get_db)):
         "risk_score": application.risk_score,
         "risk_reasons": json.loads(application.risk_reasons) if application.risk_reasons else [],
     }
-    return templates.TemplateResponse(request, "results.html", context)
+    return templates.TemplateResponse(
+        request, "results.html", context,
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache"},
+    )
 
 @app.get("/debug/applications", response_class=HTMLResponse)
 def debug_applications(db: Session = Depends(get_db)):
