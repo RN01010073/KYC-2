@@ -62,7 +62,7 @@ def generate_pkce_pair() -> tuple[str, str]:
     return verifier, challenge
 
 
-def build_authorize_url(state: str, challenge: str) -> str:
+def build_authorize_url(state: str, challenge: str, force_login: bool = True) -> str:
     require_config()
     params = {
         "response_type": "code",
@@ -73,6 +73,18 @@ def build_authorize_url(state: str, challenge: str) -> str:
         "code_challenge_method": "S256",
         "scope": "openid",
     }
+    if force_login:
+        # Standard OIDC param: forces DigiLocker to show the login/consent
+        # screen again even if the browser already has an active SSO
+        # session, instead of silently re-using whoever is currently
+        # logged in. Important for KYC - each application should assert a
+        # fresh identity, not reuse a cached one from a previous session
+        # in the same browser. Not officially documented by DigiLocker/
+        # MeriPehchaan for partner apps, but it's the standard OIDC
+        # "prompt" parameter and other DigiLocker OIDC integrations
+        # (e.g. Keycloak brokers) expose the same "prompt" concept -
+        # verify in your Setu/partner sandbox that it actually re-prompts.
+        params["prompt"] = "login"
     query = "&".join(f"{k}={v}" for k, v in params.items())
     return f"{AUTHORIZE_URL}?{query}"
 
