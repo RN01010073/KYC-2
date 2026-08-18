@@ -1,10 +1,32 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, TypeDecorator
 from sqlalchemy.dialects.postgresql import UUID
 
 from database import Base
+from encryption import decrypt_value, encrypt_value
+
+
+class EncryptedString(TypeDecorator):
+    """
+    SQLAlchemy type decorator for encrypted string columns.
+    Automatically encrypts on insert/update and decrypts on retrieval.
+    """
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        """Encrypt data before writing to database."""
+        if value is not None:
+            return encrypt_value(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        """Decrypt data after reading from database."""
+        if value is not None:
+            return decrypt_value(value)
+        return value
 
 
 def _uuid():
@@ -36,38 +58,38 @@ class PendingKYCSession(Base):
     kyc_source = Column(String, default="eKYC")
 
     # ── Form fields captured on /submit-ekyc, before DigiLocker redirect ──
-    full_name = Column(String)
-    dob = Column(String)
+    full_name = Column(EncryptedString)
+    dob = Column(EncryptedString)
     nationality = Column(String)
     gender = Column(String)
     marital_status = Column(String)
 
-    mobile = Column(String)
-    email = Column(String)
-    alternate_contact = Column(String)
+    mobile = Column(EncryptedString)
+    email = Column(EncryptedString)
+    alternate_contact = Column(EncryptedString)
 
-    perm_address_line1 = Column(String)
-    perm_address_line2 = Column(String)
+    perm_address_line1 = Column(EncryptedString)
+    perm_address_line2 = Column(EncryptedString)
     perm_city = Column(String)
     perm_state = Column(String)
-    perm_pin = Column(String)
+    perm_pin = Column(EncryptedString)
     perm_country = Column(String)
 
     same_address = Column(Boolean, default=True)
-    curr_address_line1 = Column(String)
-    curr_address_line2 = Column(String)
+    curr_address_line1 = Column(EncryptedString)
+    curr_address_line2 = Column(EncryptedString)
     curr_city = Column(String)
     curr_state = Column(String)
-    curr_pin = Column(String)
+    curr_pin = Column(EncryptedString)
     curr_country = Column(String)
 
     id_type = Column(String)
-    id_number = Column(String)
-    aadhaar_linked_mobile = Column(String)
+    id_number = Column(EncryptedString)
+    aadhaar_linked_mobile = Column(EncryptedString)
     dl_expiry_date = Column(String)
 
     occupation = Column(String)
-    annual_income = Column(String)
+    annual_income = Column(EncryptedString)
     source_of_funds = Column(String)
     pep_status = Column(String)
     account_purpose = Column(Text)
@@ -97,26 +119,26 @@ class KYCApplication(Base):
     status = Column(String, default="review")     # "approved" / "review" / "rejected"
 
     # ── As submitted on the form ──
-    full_name = Column(String)
-    dob = Column(String)
+    full_name = Column(EncryptedString)
+    dob = Column(EncryptedString)
     nationality = Column(String)
     gender = Column(String)
-    mobile = Column(String, index=True)
-    email = Column(String, index=True)
+    mobile = Column(EncryptedString, index=False)  # Can't index encrypted columns
+    email = Column(EncryptedString, index=False)
 
-    perm_address_line1 = Column(String)
-    perm_address_line2 = Column(String)
+    perm_address_line1 = Column(EncryptedString)
+    perm_address_line2 = Column(EncryptedString)
     perm_city = Column(String)
     perm_state = Column(String)
-    perm_pin = Column(String)
+    perm_pin = Column(EncryptedString)
     perm_country = Column(String)
 
     id_type = Column(String)
-    id_number = Column(String, index=True)
-    aadhaar_linked_mobile = Column(String)
+    id_number = Column(EncryptedString, index=False)  # Can't index encrypted columns
+    aadhaar_linked_mobile = Column(EncryptedString)
 
     occupation = Column(String)
-    annual_income = Column(String)
+    annual_income = Column(EncryptedString)
     source_of_funds = Column(String)
     pep_status = Column(String)
 
@@ -129,23 +151,23 @@ class KYCApplication(Base):
     signature_path = Column(String)
 
     # ── DigiLocker OAuth result (raw) ──
-    digilocker_access_token = Column(Text)  # short-lived; fine to keep only until processed
-    digilocker_id_token = Column(Text)
+    digilocker_access_token = Column(EncryptedString)  # Encrypt tokens for security
+    digilocker_id_token = Column(EncryptedString)
     digilocker_scope = Column(String)
-    digilocker_name = Column(String)
-    digilocker_dob = Column(String)
+    digilocker_name = Column(EncryptedString)
+    digilocker_dob = Column(EncryptedString)
     digilocker_gender = Column(String)
     digilocker_eaadhaar_available = Column(Boolean, default=False)
     digilocker_doc_uri = Column(String)  # reference if/when a specific issued doc is pulled
 
     # ── Data extracted from DigiLocker / eAadhaar (what results.html calls "ocr_*") ──
     ocr_success = Column(Boolean, default=False)
-    ocr_name = Column(String)
-    ocr_dob = Column(String)
-    ocr_aadhaar = Column(String)  # masked - see digilocker.py
-    ocr_pan = Column(String)
-    ocr_dl = Column(String)  # from id_token's "driving_licence" claim
-    ocr_address = Column(Text)
+    ocr_name = Column(EncryptedString)
+    ocr_dob = Column(EncryptedString)
+    ocr_aadhaar = Column(EncryptedString)  # masked - see digilocker.py
+    ocr_pan = Column(EncryptedString)
+    ocr_dl = Column(EncryptedString)  # from id_token's "driving_licence" claim
+    ocr_address = Column(EncryptedString)
 
     # ── Cross-check results (form vs DigiLocker data) ──
     name_match = Column(Boolean, nullable=True)

@@ -1,16 +1,30 @@
 import json
+import os
 import secrets
 
-from fastapi import Depends, FastAPI, Form, Request, UploadFile
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from sqlalchemy.orm import Session
 
 import crud
 import digilocker
 import storage
 from database import Base, engine, get_db
+
+# Admin credentials for debug endpoint (from environment variables)
+DEBUG_USERNAME = os.environ.get("DEBUG_USERNAME", "admin")
+DEBUG_PASSWORD = os.environ.get("DEBUG_PASSWORD")
+
+if not DEBUG_PASSWORD:
+    raise RuntimeError(
+        "DEBUG_PASSWORD is not set. Set it as an environment variable "
+        "(Render: Environment tab; local: .env file). Never hardcode it in source."
+    )
+
+security = HTTPBasic()
 
 Base.metadata.create_all(bind=engine)
 
@@ -303,12 +317,33 @@ def results(app_id: str, request: Request, db: Session = Depends(get_db)):
         headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0", "Pragma": "no-cache"},
     )
 
+
+# ────────────────────────────────────────────────────────────────────────
+# Admin/Debug endpoint (protected with basic auth)
+# ────────────────────────────────────────────────────────────────────────
+
+def verify_admin_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+    """Verify admin username and password for debug endpoints."""
+    if credentials.username != DEBUG_USERNAME or credentials.password != DEBUG_PASSWORD:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
 @app.get("/debug/applications", response_class=HTMLResponse)
-def debug_applications(db: Session = Depends(get_db)):
+def debug_applications(
+    admin: str = Depends(verify_admin_credentials),
+    db: Session = Depends(get_db),
+):
+    """Display all KYC applications (admin only, password protected)."""
     applications = crud.get_all_kyc_applications(db)
 
     html = ["<div style='font-family:monospace; background:#0A0C10; color:#F0F2F8; padding:20px;'>"]
-    html.append(f"<h1>All KYC Applications ({len(applications)})</h1>")
+    html.append(f"<h1>⚠️ ADMIN DEBUG: All KYC Applications ({len(applications)})</h1>")
+    html.append("<p style='color:#FF6B6B;'>This is encrypted data. Decryption happens automatically on display.</p>")
 
     if not applications:
         html.append("<p>No applications yet.</p>")
@@ -318,12 +353,12 @@ def debug_applications(db: Session = Depends(get_db)):
         <div style='border:1px solid #378ADD; padding:16px; margin-bottom:16px; border-radius:8px;'>
             <strong>{a.id}</strong> — {a.created_at} — <strong>{a.status.upper()}</strong> ({a.kyc_source})<br><br>
 
-            <u>Form data (as submitted)</u><br>
+            <u>Form data (as submitted - DECRYPTED)</u><br>
             name: {a.full_name} | dob: {a.dob} | mobile: {a.mobile} | email: {a.email}<br>
             id_type: {a.id_type} | id_number: {a.id_number}<br>
             address: {a.perm_address_line1}, {a.perm_city}, {a.perm_state} {a.perm_pin}<br><br>
 
-            <u>DigiLocker token response (raw)</u><br>
+            <u>DigiLocker token response (raw - DECRYPTED)</u><br>
             digilocker_name: {a.digilocker_name} | digilocker_dob: {a.digilocker_dob} | digilocker_gender: {a.digilocker_gender}<br>
             eaadhaar_available: {a.digilocker_eaadhaar_available}<br>
             scope: {a.digilocker_scope}<br><br>
@@ -331,7 +366,7 @@ def debug_applications(db: Session = Depends(get_db)):
             <u>Full decoded id_token claims</u><br>
             {"<br>".join(f"{k}: {v}" for k, v in (digilocker.decode_id_token_claims(a.digilocker_id_token).items() if a.digilocker_id_token else {}))}<br><br>
 
-            <u>eAadhaar / OCR extracted data</u><br>
+            <u>eAadhaar / OCR extracted data (DECRYPTED)</u><br>
             ocr_success: {a.ocr_success}<br>
             ocr_name: {a.ocr_name} | ocr_dob: {a.ocr_dob}<br>
             ocr_aadhaar: {a.ocr_aadhaar} | ocr_pan: {a.ocr_pan}<br>
@@ -348,6 +383,7 @@ def debug_applications(db: Session = Depends(get_db)):
 
     html.append("</div>")
     return "".join(html)
+
 
 if __name__ == "__main__":
     import os
