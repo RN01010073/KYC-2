@@ -178,7 +178,7 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
             import httpx
             async with httpx.AsyncClient() as client:
                 res = await client.get(
-                    "https://digilocker.meripehchan.gov.in/public/oauth2/1/user",
+                    f"{digilocker.BASE}/oauth2/1/user",
                     headers={"Authorization": f"Bearer {access_token}"},
                     timeout=15.0
                 )
@@ -186,8 +186,20 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
                 print(f"🔍 FULL USER INFO DATA: {res.text}")
                 if res.status_code == 200:
                     user_info = res.json()
+                elif res.status_code == 404:
+                    # Some API Setu versions use v2 for user endpoint
+                    res2 = await client.get(
+                        f"{digilocker.BASE}/oauth2/2/user",
+                        headers={"Authorization": f"Bearer {access_token}"},
+                        timeout=15.0
+                    )
+                    print(f"🔍 USER INFO (v2) STATUS: {res2.status_code}")
+                    print(f"🔍 USER INFO (v2) DATA: {res2.text}")
+                    if res2.status_code == 200:
+                        user_info = res2.json()
         except Exception as e:
             print(f"⚠️ Error fetching user info: {e}")
+
 
 
     dl_name = claims.get("given_name") or claims.get("name")
