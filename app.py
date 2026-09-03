@@ -172,6 +172,23 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
     claims = digilocker.decode_id_token_claims(id_token) if id_token else {}
     print(f"🔍 FULL CLAIMS: {claims}")
 
+    user_info = {}
+    if access_token:
+        try:
+            import httpx
+            async with httpx.AsyncClient() as client:
+                res = await client.get(
+                    "https://digilocker.meripehchan.gov.in/public/oauth2/1/user",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    timeout=15.0
+                )
+                print(f"🔍 USER INFO STATUS: {res.status_code}")
+                print(f"🔍 FULL USER INFO DATA: {res.text}")
+                if res.status_code == 200:
+                    user_info = res.json()
+        except Exception as e:
+            print(f"⚠️ Error fetching user info: {e}")
+
 
     dl_name = claims.get("given_name") or claims.get("name")
     dl_dob = claims.get("birthdate")
@@ -192,7 +209,7 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
     # standard API Setu partner registration - not available at our current
     # tier, so eAadhaar XML fetch is skipped. PAN + DL cover identity
     # verification; address cross-check is not available from DigiLocker.
-    ocr_address = None
+    ocr_address = user_info.get("address")
     form_values = {
         "name": pending.full_name,
         "dob": pending.dob,
