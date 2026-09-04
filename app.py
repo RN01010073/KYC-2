@@ -219,22 +219,35 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
 
 
     # -------------------------------------------------------------------------
-    # 🚀 Fetch Full Address from eAadhaar XML (since eaadhaar == "Y")
+    # 🏠 Address Fetch: Try eAadhaar first, then Fallback to Driving Licence
     # -------------------------------------------------------------------------
     ocr_address = user_info.get("address")
-    if user_info.get("eaadhaar") == "Y":
+
+    # 1. Try eAadhaar XML
+    if not ocr_address and user_info.get("eaadhaar") == "Y":
         try:
             print("🚀 Fetching eAadhaar XML for address...")
             xml_text = await digilocker.fetch_eaadhaar_xml(access_token)
             if xml_text:
                 eaadhaar_data = digilocker.parse_eaadhaar_xml(xml_text)
-                print(f"🏠 PARSED EAADHAAR DATA: {eaadhaar_data}")
-                ocr_address = eaadhaar_data.get("address") or ocr_address
+                ocr_address = eaadhaar_data.get("address")
         except Exception as e:
-            print(f"⚠️ Failed to fetch eAadhaar XML: {e}")
-    
-    print(f"✅ FINAL OCR ADDRESS: {ocr_address}")
-        # -------------------------------------------------------------------------
+            print(f"⚠️ eAadhaar XML fetch failed: {e}")
+
+    # 2. 🚗 If eAadhaar failed/blocked (403), fetch Address from Driving Licence!
+    if not ocr_address:
+        try:
+            print("🚗 Checking for Driving Licence to extract address...")
+            dl_data = await digilocker.fetch_dl_address(access_token)
+            if dl_data and dl_data.get("address"):
+                ocr_address = dl_data["address"]
+                print(f"🏠 SUCCESS: Extracted Address from Driving Licence: {ocr_address}")
+        except Exception as e:
+            print(f"⚠️ DL address fetch failed: {e}")
+
+    print(f"✅ FINAL OCR ADDRESS FOR VERIFICATION: {ocr_address}")
+    # -------------------------------------------------------------------------
+
 
 
     dl_name = claims.get("given_name") or claims.get("name")
