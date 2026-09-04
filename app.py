@@ -201,6 +201,41 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
             print(f"⚠️ Error fetching user info: {e}")
 
 
+    # =========================================================================
+    # 2. 📸 SAVE DIGILOCKER PHOTO (Optional)
+    # =========================================================================
+    user_photo_b64 = user_info.get("picture")
+    if user_photo_b64:
+        try:
+            import base64
+            photo_filename = f"dl_photo_{pending.id_number}.jpg"
+            photo_path = os.path.join("static", "uploads", photo_filename)
+            with open(photo_path, "wb") as f:
+                f.write(base64.b64decode(user_photo_b64))
+            print(f"📸 Saved DigiLocker photo to: {photo_path}")
+        except Exception as e:
+            print(f"⚠️ Failed to save photo: {e}")
+    # =========================================================================
+
+
+    # -------------------------------------------------------------------------
+    # 🚀 Fetch Full Address from eAadhaar XML (since eaadhaar == "Y")
+    # -------------------------------------------------------------------------
+    ocr_address = user_info.get("address")
+    if user_info.get("eaadhaar") == "Y":
+        try:
+            print("🚀 Fetching eAadhaar XML for address...")
+            xml_text = await digilocker.fetch_eaadhaar_xml(access_token)
+            if xml_text:
+                eaadhaar_data = digilocker.parse_eaadhaar_xml(xml_text)
+                print(f"🏠 PARSED EAADHAAR DATA: {eaadhaar_data}")
+                ocr_address = eaadhaar_data.get("address") or ocr_address
+        except Exception as e:
+            print(f"⚠️ Failed to fetch eAadhaar XML: {e}")
+    
+    print(f"✅ FINAL OCR ADDRESS: {ocr_address}")
+        # -------------------------------------------------------------------------
+
 
     dl_name = claims.get("given_name") or claims.get("name")
     dl_dob = claims.get("birthdate")
@@ -217,11 +252,8 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
     # DigiLocker; blank otherwise, same as pan_number.
     ocr_dl = claims.get("driving_licence")
 
-    # Aadhaar document access requires separate UIDAI-level approval beyond
-    # standard API Setu partner registration - not available at our current
-    # tier, so eAadhaar XML fetch is skipped. PAN + DL cover identity
-    # verification; address cross-check is not available from DigiLocker.
-    ocr_address = user_info.get("address")
+    
+
     form_values = {
         "name": pending.full_name,
         "dob": pending.dob,
