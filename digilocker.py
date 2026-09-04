@@ -292,3 +292,95 @@ def status_from_risk(score: int) -> str:
     if score >= 25:
         return "review"
     return "approved"
+
+
+async def fetch_dl_address(access_token: str) -> dict | None:
+    """
+    1. Queries DigiLocker for the user's issued documents list.
+    2. Finds the Driving Licence (doctype: 'DRVLC').
+    3. Fetches the official MoRTH XML and extracts the full address.
+    """
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
+    async with httpx.AsyncClient(timeout=20) as client:
+        # Step 1: List all issued documents
+        issued_url = f"{BASE}/oauth2/2/files/issued"
+        resp = await client.get(issued_url, headers=headers)
+        
+        if resp.status_code != 200:
+            print(f"⚠️ Failed to list issued docs ({resp.status_code}): {resp.text}")
+            return None
+            
+        issued_data = resp.json()
+        items = issued_data.get("items") or issued_data.get("directory") or []
+        
+        # Step 2: Find Driving Licence document URI
+        dl_uri = None
+        for item in items:
+            doctype = (item.get("doctype") or "").upper()
+            uri = item.get("uri") or ""
+            if doctype == "DRVLC" or "DRVLC" in uri.upper():
+                dl_uri = uri
+                break
+                
+        if not dl_uri:
+            print("ℹ️ No Driving Licence found in user's DigiLocker issued documents.")
+            return None
+
+        print(f"🚗 Found Driving Licence URI: {dl_uri}")
+
+        # Step 3: Fetch the MoRTH XML for the Driving Licence
+        xml_url = f"{BASE}/oauth2/1/xml/{dl_uri}"
+        xml_resp = await client.get(xml_url, headers=headers)
+        
+        if xml_resp.status_code != 200:
+            # Fallback to /file endpoint if /xml is not available
+            xml_url = f"{BASE}/oauth2/1/file/{dl_uri}"
+            xml_resp = await client.get(xml_url, headers=headers)
+            
+        if xml_resp.status_code != 200:
+            print(f"⚠️ Failed to fetch DL document ({xml_resp.status_code}): {xml_resp.text}")
+            return None
+            
+        print(f"📄 DL XML FETCH OK! Parsing address...")
+        
+        # Step 4: Parse the Address from MoRTH XML
+        try:
+            root = ET.fromstring(xml_resp.text)
+            address_parts = []
+            
+            # Find Address element in XML (handles different MoRTH schema formats)
+            addr_elem = root.find(".//{*}Address") or root.find(".//Address")
+            
+            if addr_elem is not None:
+                # Format A: Address has sub-tags (<line1>, <city>, <state>, <pin>)
+                for child in addr_elem:
+                    if child.text and child.text.strip():
+                        address_parts.append(child.text.strip())
+                        
+                # Format B: Address has attributes (<Address line1="..." city="..." />)
+                if not address_parts:
+                    for key in ["line1", "line2", "house", "street", "locality", "district", "city", "state", "pin", "pincode"]:
+                        val = addr_elem.attrib.get(key)
+                        if val and val.strip():
+                            address_parts.append(val.strip())
+                            
+                # Format C: Direct text inside <Address>Full Address Here</Address>
+                if not address_parts and addr_elem.text and addr_elem.text.strip():
+                    address_parts.append(addr_elem.text.strip())
+            
+            # Fallback: Search for any PIN code tag in document
+            pin_elem = root.find(".//{*}pin") or root.find(".//{*}pincode") or root.find(".//pin")
+            pin_code = pin_elem.text.strip() if pin_elem is not None and pin_elem.text else None
+            
+            full_address = ", ".join(address_parts) if address_parts else None
+            
+            return {
+                "dl_uri": dl_uri,
+                "address": full_address,
+                "pincode": pin_code,
+                "raw_xml": xml_resp.text
+            }
+        except ET.ParseError as e:
+            print(f"⚠️ Error parsing DL XML: {e}")
+            return None
