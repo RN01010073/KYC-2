@@ -329,12 +329,11 @@ async def fetch_dl_address(access_token: str) -> dict | None:
 
         print(f"🚗 Found Driving Licence URI: {dl_uri}")
 
-        # Step 3: Fetch the MoRTH XML for the Driving Licence
+        # Step 3: Fetch the MoRTH XML
         xml_url = f"{BASE}/oauth2/1/xml/{dl_uri}"
         xml_resp = await client.get(xml_url, headers=headers)
         
         if xml_resp.status_code != 200:
-            # Fallback to /file endpoint if /xml is not available
             xml_url = f"{BASE}/oauth2/1/file/{dl_uri}"
             xml_resp = await client.get(xml_url, headers=headers)
             
@@ -343,42 +342,53 @@ async def fetch_dl_address(access_token: str) -> dict | None:
             return None
             
         print(f"📄 DL XML FETCH OK! Parsing address...")
+        print(f"🔍 DEBUG RAW DL XML (First 400 chars): {xml_resp.text[:400]}")
         
-        # Step 4: Parse the Address from MoRTH XML
+        # Step 4: Parse Address (Namespace-agnostic search)
         try:
             root = ET.fromstring(xml_resp.text)
             address_parts = []
             
-            # Find Address element in XML (handles different MoRTH schema formats)
-            addr_elem = root.find(".//{*}Address") or root.find(".//Address")
+            # Print available tags for quick inspection
+            tag_names = {elem.tag.split("}")[-1] for elem in root.iter()}
+            print(f"🔍 TAGS IN XML: {tag_names}")
             
-            if addr_elem is not None:
-                # Format A: Address has sub-tags (<line1>, <city>, <state>, <pin>)
-                for child in addr_elem:
-                    if child.text and child.text.strip():
-                        address_parts.append(child.text.strip())
+            # 1. Search for any element containing 'addr' (Address, PermanentAddress, etc.)
+            addr_candidates = [elem for elem in root.iter() if "addr" in elem.tag.lower()]
+            
+            for elem in addr_candidates:
+                # Check attributes (e.g. <Address line1="..." city="..." pin="..." />)
+                for key in ["line1", "line2", "house", "street", "locality", "district", "city", "state", "pin", "pincode"]:
+                    val = elem.attrib.get(key)
+                    if val and val.strip():
+                        address_parts.append(val.strip())
                         
-                # Format B: Address has attributes (<Address line1="..." city="..." />)
+                # Check child elements (e.g. <Address><line1>...</line1></Address>)
                 if not address_parts:
-                    for key in ["line1", "line2", "house", "street", "locality", "district", "city", "state", "pin", "pincode"]:
-                        val = addr_elem.attrib.get(key)
-                        if val and val.strip():
-                            address_parts.append(val.strip())
+                    for child in elem:
+                        if child.text and child.text.strip():
+                            address_parts.append(child.text.strip())
                             
-                # Format C: Direct text inside <Address>Full Address Here</Address>
-                if not address_parts and addr_elem.text and addr_elem.text.strip():
-                    address_parts.append(addr_elem.text.strip())
-            
-            # Fallback: Search for any PIN code tag in document
-            pin_elem = root.find(".//{*}pin") or root.find(".//{*}pincode") or root.find(".//pin")
-            pin_code = pin_elem.text.strip() if pin_elem is not None and pin_elem.text else None
-            
-            full_address = ", ".join(address_parts) if address_parts else None
+                # Check direct inner text
+                if not address_parts and elem.text and elem.text.strip():
+                    address_parts.append(elem.text.strip())
+                    
+                if address_parts:
+                    break
+
+            # 2. Fallback: Search for individual address fields across the whole XML
+            if not address_parts:
+                for tag_name in ["line1", "line2", "street", "locality", "district", "city", "state", "pin", "pincode"]:
+                    for elem in root.iter():
+                        if elem.tag.split("}")[-1].lower() == tag_name and elem.text and elem.text.strip():
+                            address_parts.append(elem.text.strip())
+
+            full_address = ", ".join(dict.fromkeys(address_parts)) if address_parts else None
+            print(f"🏠 PARSED DL ADDRESS: {full_address}")
             
             return {
                 "dl_uri": dl_uri,
                 "address": full_address,
-                "pincode": pin_code,
                 "raw_xml": xml_resp.text
             }
         except ET.ParseError as e:
