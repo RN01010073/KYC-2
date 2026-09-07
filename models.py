@@ -82,6 +82,14 @@ class PendingKYCSession(Base):
     source_of_funds = Column(String)
     pep_status = Column(String, default="No")
 
+    # Legacy optional fields (preserved for Supabase schema compatibility)
+    marital_status = Column(String, nullable=True)
+    alternate_contact = Column(EncryptedString, nullable=True)
+    aadhaar_linked_mobile = Column(EncryptedString, nullable=True)
+    dl_expiry_date = Column(String, nullable=True)
+    account_purpose = Column(Text, nullable=True)
+    income_proof_path = Column(String, nullable=True)
+
     # File paths on disk
     id_proof_front_path = Column(String)
     id_proof_back_path = Column(String)
@@ -143,8 +151,14 @@ class KYCApplication(Base):
     id_proof_back_path = Column(String)
     address_proof_path = Column(String)
     current_address_proof_path = Column(String)
+    income_proof_path = Column(String, nullable=True)
     selfie_path = Column(String)
     signature_path = Column(String)
+
+    # Legacy optional fields
+    aadhaar_linked_mobile = Column(EncryptedString, nullable=True)
+    digilocker_access_token = Column(EncryptedString, nullable=True)
+    digilocker_id_token = Column(EncryptedString, nullable=True)
 
     # DigiLocker response & Biometrics
     digilocker_scope = Column(String)

@@ -100,9 +100,17 @@ def _load_image_from_file(file_path: str) -> np.ndarray | None:
     except Exception as e:
         print(f"Failed to read image from {file_path}: {e}")
         return None
-    except Exception as e:
-        print(f"Failed to read image from {file_path}: {e}")
-        return None
+
+
+def _center_crop_gray(gray: np.ndarray) -> np.ndarray | None:
+    """Return a 128x128 center crop of a grayscale image as face detection fallback."""
+    h, w = gray.shape
+    cy, cx = h // 2, w // 2
+    crop_size = min(h, w) // 2
+    face_crop = gray[cy - crop_size:cy + crop_size, cx - crop_size:cx + crop_size]
+    if face_crop.size > 0:
+        return cv2.resize(face_crop, (128, 128))
+    return None
 
 
 def _detect_and_crop_face(img: np.ndarray) -> np.ndarray | None:
@@ -110,19 +118,35 @@ def _detect_and_crop_face(img: np.ndarray) -> np.ndarray | None:
     if img is None:
         return None
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    cascade_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+
+    # Safely resolve Haar cascade path — cv2.data.haarcascades may be None in
+    # some headless/minimal OpenCV builds on cloud platforms (e.g. Render).
+    haarcascades_dir = getattr(cv2, "data", None)
+    haarcascades_dir = getattr(haarcascades_dir, "haarcascades", None)
+    if not haarcascades_dir:
+        # Attempt known fallback paths for opencv-python-headless on Linux
+        import glob
+        candidates = glob.glob("/opt/**/*haarcascade_frontalface_default.xml", recursive=True) + \
+                     glob.glob("/usr/**/*haarcascade_frontalface_default.xml", recursive=True)
+        if not candidates:
+            print("Haar cascade XML not found; skipping face detection, using center crop.")
+            return _center_crop_gray(gray)
+        cascade_path = candidates[0]
+    else:
+        cascade_path = haarcascades_dir + "haarcascade_frontalface_default.xml"
+
+    if not os.path.exists(cascade_path):
+        print(f"Haar cascade XML missing at {cascade_path}; using center crop.")
+        return _center_crop_gray(gray)
+
     face_cascade = cv2.CascadeClassifier(cascade_path)
+    if face_cascade.empty():
+        print("CascadeClassifier failed to load; using center crop.")
+        return _center_crop_gray(gray)
 
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(40, 40))
     if len(faces) == 0:
-        # Fallback: take center crop if face detector missed (e.g. low res photo)
-        h, w = gray.shape
-        cy, cx = h // 2, w // 2
-        crop_size = min(h, w) // 2
-        face_crop = gray[cy - crop_size:cy + crop_size, cx - crop_size:cx + crop_size]
-        if face_crop.size > 0:
-            return cv2.resize(face_crop, (128, 128))
-        return None
+        return _center_crop_gray(gray)
 
     # Largest detected face
     x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
