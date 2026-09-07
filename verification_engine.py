@@ -244,14 +244,91 @@ def _html_block_to_text(html_str: str) -> str:
     return unescape(text).strip()
 
 
+# Lazy-loaded Surya OCR singleton (loaded once on first call)
+_surya_manager = None
+_surya_rec_predictor = None
+
+
+def _get_surya_predictor():
+    """Lazy-load the Surya OCR predictor once and reuse across calls."""
+    global _surya_manager, _surya_rec_predictor
+    if _surya_rec_predictor is None:
+        try:
+            from surya.inference import SuryaInferenceManager
+            from surya.recognition import RecognitionPredictor
+            _surya_manager = SuryaInferenceManager()
+            _surya_rec_predictor = RecognitionPredictor(_surya_manager)
+            print('Surya OCR predictor loaded successfully')
+        except Exception as e:
+            print(f'Surya OCR load failed: {e}')
+            _surya_rec_predictor = None
+    return _surya_rec_predictor
+
+
 def run_surya_ocr_file(file_path: str) -> str:
     """
-    Runs Surya OCR on a given image or PDF using the tested CLI workflow.
+    Runs Surya OCR on a given image or PDF using the Python API.
     Handles decrypting encrypted uploaded files beforehand.
     Returns concatenated extracted plain text.
     """
     if not file_path or not os.path.exists(file_path):
         return ""
+
+    predictor = _get_surya_predictor()
+    if predictor is None:
+        print("Surya OCR unavailable, returning empty string")
+        return ""
+
+    try:
+        from PIL import Image as PILImage
+
+        # Decrypt the uploaded file into bytes
+        decrypted_bytes = read_upload(file_path)
+        ext = os.path.splitext(file_path)[1].lower() or '.png'
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = os.path.join(tmp_dir, f'doc_input{ext}')
+            if decrypted_bytes:
+                with open(tmp_path, 'wb') as f:
+                    f.write(decrypted_bytes)
+            else:
+                import shutil
+                shutil.copy(file_path, tmp_path)
+
+            # Load image pages
+            images = []
+            if ext == '.pdf':
+                try:
+                    import pypdfium2 as pdfium
+                    pdf = pdfium.PdfDocument(tmp_path)
+                    for page in pdf:
+                        bmp = page.render(scale=2)
+                        images.append(bmp.to_pil())
+                except Exception:
+                    img = PILImage.open(tmp_path).convert('RGB')
+                    images = [img]
+            else:
+                img = PILImage.open(tmp_path).convert('RGB')
+                images = [img]
+
+            # Run OCR using Python API (full_page=True: one VLM call per page)
+            page_results = predictor(images, full_page=True)
+
+            # Extract text from blocks
+            extracted_lines = []
+            for page in page_results:
+                for block in page.blocks:
+                    if not block.skipped and block.html:
+                        t = _html_block_to_text(block.html)
+                        if t:
+                            extracted_lines.append(t)
+
+            return "\n".join(extracted_lines)
+
+    except Exception as e:
+        print(f'Surya OCR error: {e}')
+
+    return ""
 
     creationflags = subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
 

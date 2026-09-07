@@ -1,4 +1,4 @@
-"""
+﻿"""
 DigiLocker / MeriPehchaan OAuth2 (PKCE) client, plus the identity
 cross-check and risk-scoring logic used after a successful callback.
 
@@ -202,15 +202,42 @@ def _normalize_id(s: str | None) -> str:
 
 
 def _normalize_date(s: str | None) -> str:
-    """Normalize either YYYY-MM-DD (HTML date input) or DD-MM-YYYY (UIDAI) to YYYY-MM-DD."""
+    """
+    Normalize any common Indian DOB format to YYYY-MM-DD for comparison.
+    Handles: YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, DDMMYYYY, YYYYMMDD,
+             DD.MM.YYYY, DD Mon YYYY, YYYY/MM/DD.
+    """
     if not s:
         return ""
     s = s.strip()
-    for fmt in ("%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y"):
+    # Try standard formats with separators
+    for fmt in (
+        "%Y-%m-%d",   # 2004-07-15  (HTML date input)
+        "%d-%m-%Y",   # 15-07-2004  (UIDAI Aadhaar)
+        "%d/%m/%Y",   # 15/07/2004
+        "%d.%m.%Y",   # 15.07.2004
+        "%Y/%m/%d",   # 2004/07/15
+        "%d %b %Y",   # 15 Jul 2004
+        "%d %B %Y",   # 15 July 2004
+        "%b %d, %Y",  # Jul 15, 2004
+    ):
         try:
             return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
         except ValueError:
             continue
+    # Handle compact 8-digit formats (no separators)
+    digits = re.sub(r"\D", "", s)
+    if len(digits) == 8:
+        # Try DDMMYYYY (e.g. 15072004 - DigiLocker DL format)
+        try:
+            return datetime.strptime(digits, "%d%m%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+        # Try YYYYMMDD (e.g. 20040715)
+        try:
+            return datetime.strptime(digits, "%Y%m%d").strftime("%Y-%m-%d")
+        except ValueError:
+            pass
     return s
 
 
