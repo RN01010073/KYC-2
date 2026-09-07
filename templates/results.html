@@ -396,7 +396,7 @@
           <div style="font-size:13px; color:var(--text-primary);">{{ form_values.curr_address or "—" }}</div>
           <div style="margin-top:6px; display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
             {% if curr_address_match %}
-              <span class="badge badge-green">✓ Utility Bill Verified (Surya OCR)</span>
+              <span class="badge badge-green">✓ Utility Bill Verified (PaddleOCR)</span>
             {% else %}
               <span class="badge badge-red">✗ Current Address Unverified</span>
             {% endif %}
@@ -568,7 +568,7 @@
     {% if ocr_dob %}
     <div class="row">
       <span class="row-label">Date of birth</span>
-      <span class="row-value">{{ ocr_dob }}</span>
+      <span class="row-value">{{ ocr_dob | format_dob }}</span>
     </div>
     {% endif %}
     {% if ocr_aadhaar %}

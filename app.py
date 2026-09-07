@@ -192,6 +192,23 @@ ensure_schema()
 
 app = FastAPI(title="VerifyZ")
 templates = Jinja2Templates(directory="templates")
+
+
+def format_to_ddmmyyyy(d_str: str | None) -> str:
+    """Format any date representation to DD-MM-YYYY (e.g. 2002-04-13 or 13042002 -> 13-04-2002)."""
+    if not d_str:
+        return "-"
+    try:
+        norm = digilocker._normalize_date(str(d_str).strip())
+        if norm and len(norm) == 10 and norm.count("-") == 2:
+            parts = norm.split("-")
+            return f"{parts[2]}-{parts[1]}-{parts[0]}"
+    except Exception:
+        pass
+    return str(d_str)
+
+
+templates.env.filters["format_dob"] = format_to_ddmmyyyy
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -650,7 +667,7 @@ def results(app_id: str, request: Request, db: Session = Depends(get_db)):
             "bill_recency_valid": application.bill_recency_valid,
             "form_values": {
                 "name": application.full_name,
-                "dob": application.dob,
+                "dob": format_to_ddmmyyyy(application.dob),
                 "address": ", ".join(filter(None, [
                     application.perm_address_line1, application.perm_address_line2,
                     application.perm_city, application.perm_state, application.perm_pin,
@@ -663,7 +680,7 @@ def results(app_id: str, request: Request, db: Session = Depends(get_db)):
             },
             "ocr_values": {
                 "name": application.ocr_name,
-                "dob": application.ocr_dob,
+                "dob": format_to_ddmmyyyy(application.ocr_dob),
                 "address": application.ocr_address,
                 "id_number": {
                     "aadhaar": application.ocr_aadhaar,
@@ -684,7 +701,7 @@ def results(app_id: str, request: Request, db: Session = Depends(get_db)):
                 "curr_address_match": application.curr_address_match,
             },
             "ocr_name": application.ocr_name,
-            "ocr_dob": application.ocr_dob,
+            "ocr_dob": format_to_ddmmyyyy(application.ocr_dob),
             "ocr_aadhaar": application.ocr_aadhaar,
             "ocr_pan": application.ocr_pan,
             "ocr_dl": application.ocr_dl,

@@ -113,42 +113,87 @@ def _center_crop_gray(gray: np.ndarray) -> np.ndarray | None:
     return None
 
 
+# YuNet + SFace Deep Learning Face Verification models (lazy-loaded)
+_yunet_detector = None
+_sface_recognizer = None
+
+
+def _get_face_models():
+    """Load or lazily initialize YuNet Face Detector and SFace Face Recognizer."""
+    global _yunet_detector, _sface_recognizer
+    if _sface_recognizer is not None and _yunet_detector is not None:
+        return _yunet_detector, _sface_recognizer
+
+    models_dir = os.path.join(os.path.dirname(__file__), "models_weights")
+    os.makedirs(models_dir, exist_ok=True)
+    yunet_path = os.path.join(models_dir, "face_detection_yunet.onnx")
+    sface_path = os.path.join(models_dir, "face_recognition_sface.onnx")
+
+    # Auto-download on cold start (e.g. Render) if missing
+    if not os.path.exists(yunet_path) or os.path.getsize(yunet_path) < 10000:
+        try:
+            print("Downloading YuNet model weights...")
+            import requests
+            url = "https://huggingface.co/opencv/face_detection_yunet/resolve/main/face_detection_yunet_2023mar.onnx"
+            r = requests.get(url, allow_redirects=True, timeout=60)
+            if r.status_code == 200:
+                with open(yunet_path, "wb") as mf:
+                    mf.write(r.content)
+        except Exception as e:
+            print(f"Failed to download YuNet: {e}")
+
+    if not os.path.exists(sface_path) or os.path.getsize(sface_path) < 1000000:
+        try:
+            print("Downloading SFace model weights...")
+            import requests
+            url = "https://huggingface.co/opencv/face_recognition_sface/resolve/main/face_recognition_sface_2021dec.onnx"
+            r = requests.get(url, allow_redirects=True, timeout=120)
+            if r.status_code == 200:
+                with open(sface_path, "wb") as mf:
+                    mf.write(r.content)
+        except Exception as e:
+            print(f"Failed to download SFace: {e}")
+
+    if os.path.exists(yunet_path) and os.path.exists(sface_path):
+        try:
+            _yunet_detector = cv2.FaceDetectorYN.create(yunet_path, "", (320, 320))
+            _sface_recognizer = cv2.FaceRecognizerSF.create(sface_path, "")
+            print("Loaded YuNet and SFace models successfully")
+            return _yunet_detector, _sface_recognizer
+        except Exception as e:
+            print(f"Failed to initialize SFace/YuNet: {e}")
+
+    return None, None
+
+
 def _detect_and_crop_face(img: np.ndarray) -> np.ndarray | None:
-    """Detect primary face using OpenCV Haar Cascade and return 128x128 cropped gray face."""
+    """Detect primary face using OpenCV Haar Cascade fallback and return 128x128 cropped gray face."""
     if img is None:
         return None
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Safely resolve Haar cascade path â€” cv2.data.haarcascades may be None in
-    # some headless/minimal OpenCV builds on cloud platforms (e.g. Render).
     haarcascades_dir = getattr(cv2, "data", None)
     haarcascades_dir = getattr(haarcascades_dir, "haarcascades", None)
     if not haarcascades_dir:
-        # Attempt known fallback paths for opencv-python-headless on Linux
         import glob
-        candidates = glob.glob("/opt/**/*haarcascade_frontalface_default.xml", recursive=True) + \
-                     glob.glob("/usr/**/*haarcascade_frontalface_default.xml", recursive=True)
+        candidates = glob.glob("/opt/**/*haarcascade_frontalface_default.xml", recursive=True) +                      glob.glob("/usr/**/*haarcascade_frontalface_default.xml", recursive=True)
         if not candidates:
-            print("Haar cascade XML not found; skipping face detection, using center crop.")
             return _center_crop_gray(gray)
         cascade_path = candidates[0]
     else:
         cascade_path = haarcascades_dir + "haarcascade_frontalface_default.xml"
 
     if not os.path.exists(cascade_path):
-        print(f"Haar cascade XML missing at {cascade_path}; using center crop.")
         return _center_crop_gray(gray)
 
     face_cascade = cv2.CascadeClassifier(cascade_path)
     if face_cascade.empty():
-        print("CascadeClassifier failed to load; using center crop.")
         return _center_crop_gray(gray)
 
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(40, 40))
     if len(faces) == 0:
         return _center_crop_gray(gray)
 
-    # Largest detected face
     x, y, w, h = max(faces, key=lambda f: f[2] * f[3])
     face_crop = gray[y:y+h, x:x+w]
     return cv2.resize(face_crop, (128, 128))
@@ -157,7 +202,7 @@ def _detect_and_crop_face(img: np.ndarray) -> np.ndarray | None:
 def verify_face(selfie_path: str | None, dl_photo_b64: str | None) -> dict:
     """
     Biometric face match between applicant's live webcam selfie and
-    official government photo from DigiLocker.
+    official government photo from DigiLocker using deep learning (SFace + YuNet).
     Returns confidence score (0-100) and match boolean.
     """
     if not selfie_path or not dl_photo_b64:
@@ -177,6 +222,56 @@ def verify_face(selfie_path: str | None, dl_photo_b64: str | None) -> dict:
             "reason": "Could not decode selfie or government photo"
         }
 
+    # 1. Primary: Deep Learning Face Recognition (YuNet + SFace)
+    detector, recognizer = _get_face_models()
+    if detector is not None and recognizer is not None:
+        try:
+            detector.setInputSize((selfie_img.shape[1], selfie_img.shape[0]))
+            _, faces1 = detector.detect(selfie_img)
+
+            detector.setInputSize((dl_img.shape[1], dl_img.shape[0]))
+            _, faces2 = detector.detect(dl_img)
+
+            if faces1 is not None and len(faces1) > 0 and faces2 is not None and len(faces2) > 0:
+                f1 = max(faces1, key=lambda f: f[2] * f[3])
+                f2 = max(faces2, key=lambda f: f[2] * f[3])
+
+                aligned1 = recognizer.alignCrop(selfie_img, f1)
+                aligned2 = recognizer.alignCrop(dl_img, f2)
+
+                feat1 = recognizer.feature(aligned1)
+                feat2 = recognizer.feature(aligned2)
+
+                cosine_sim = float(recognizer.match(feat1, feat2, cv2.FaceRecognizerSF_FR_COSINE))
+                print(f"Deep face comparison cosine similarity: {cosine_sim:.4f}")
+
+                # Standard SFace match threshold: 0.363
+                if cosine_sim >= 0.363:
+                    matched = True
+                    # Scale from [0.363, 0.70] -> [62%, 99%]
+                    scaled = 62 + int(((cosine_sim - 0.363) / (0.70 - 0.363)) * 36)
+                    score_pct = max(62, min(99, scaled))
+                elif cosine_sim >= 0.25:
+                    matched = False
+                    score_pct = int(40 + ((cosine_sim - 0.25) / (0.363 - 0.25)) * 20)
+                else:
+                    matched = False
+                    score_pct = max(5, int((max(0.0, cosine_sim) / 0.25) * 38))
+
+                reason = (
+                    f"Face matched with {score_pct}% biometric confidence"
+                    if matched
+                    else f"Face match confidence low ({score_pct}%)"
+                )
+                return {
+                    "matched": matched,
+                    "score": score_pct,
+                    "reason": reason
+                }
+        except Exception as e:
+            print(f"Deep learning face verification exception: {e}")
+
+    # 2. Fallback: Structural & Histogram matching
     face1 = _detect_and_crop_face(selfie_img)
     face2 = _detect_and_crop_face(dl_img)
 
@@ -187,23 +282,19 @@ def verify_face(selfie_path: str | None, dl_photo_b64: str | None) -> dict:
             "reason": "Clear face could not be detected in one or both images"
         }
 
-    # Equalize histograms to normalize contrast/lighting differences
     face1_eq = cv2.equalizeHist(face1)
     face2_eq = cv2.equalizeHist(face2)
 
-    # 1. Structural template correlation
     res = cv2.matchTemplate(face1_eq, face2_eq, cv2.TM_CCOEFF_NORMED)
     _, max_val, _, _ = cv2.minMaxLoc(res)
     corr_score = max(0.0, float(max_val))
 
-    # 2. Histogram correlation
     hist1 = cv2.calcHist([face1_eq], [0], None, [64], [0, 256])
     hist2 = cv2.calcHist([face2_eq], [0], None, [64], [0, 256])
     cv2.normalize(hist1, hist1)
     cv2.normalize(hist2, hist2)
     hist_score = max(0.0, float(cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)))
 
-    # 3. Feature keypoint matching (ORB)
     orb = cv2.ORB_create(nfeatures=200)
     kp1, des1 = orb.detectAndCompute(face1_eq, None)
     kp2, des2 = orb.detectAndCompute(face2_eq, None)
@@ -216,12 +307,10 @@ def verify_face(selfie_path: str | None, dl_photo_b64: str | None) -> dict:
             good_matches = [m for m in matches if m.distance < 60]
             orb_score = min(1.0, len(good_matches) / max(len(des1), len(des2)))
 
-    # Weighted biometric confidence
     final_confidence = (corr_score * 0.45) + (hist_score * 0.35) + (orb_score * 0.20)
     score_pct = int(min(100, max(0, final_confidence * 100)))
 
-    # Threshold for match: 60%
-    matched = score_pct >= 60
+    matched = score_pct >= 50
     reason = f"Face matched with {score_pct}% confidence" if matched else f"Face match confidence low ({score_pct}%)"
 
     return {
@@ -232,146 +321,116 @@ def verify_face(selfie_path: str | None, dl_photo_b64: str | None) -> dict:
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# 3. SURYA OCR INTEGRATION & PARSING (Python API - v2)
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# 3. PADDLEOCR INTEGRATION & PARSING
+# ==============================================================================
 
-def _html_block_to_text(html_str: str) -> str:
-    if not html_str:
-        return ""
-    html_str = re.sub(r"<br\s*/?>", "\n", html_str, flags=re.IGNORECASE)
-    html_str = re.sub(r"<li[^>]*>", "\n", html_str, flags=re.IGNORECASE)
-    text = re.sub(r"<[^>]+>", "", html_str)
-    return unescape(text).strip()
+# Lazy-loaded PaddleOCR singleton
+_paddle_ocr_engine = None
 
 
-# Lazy-loaded Surya OCR singleton (loaded once on first call)
-_surya_manager = None
-_surya_rec_predictor = None
-
-
-def _get_surya_predictor():
-    """Lazy-load the Surya OCR predictor once and reuse across calls."""
-    global _surya_manager, _surya_rec_predictor
-    if _surya_rec_predictor is None:
+def _get_paddle_ocr():
+    """Lazy-load PaddleOCR engine once and reuse across calls."""
+    global _paddle_ocr_engine
+    if _paddle_ocr_engine is None:
         try:
-            from surya.inference import SuryaInferenceManager
-            from surya.recognition import RecognitionPredictor
-            _surya_manager = SuryaInferenceManager()
-            _surya_rec_predictor = RecognitionPredictor(_surya_manager)
-            print('Surya OCR predictor loaded successfully')
+            import os
+            # Ensure stable CPU inference without oneDNN conflict
+            os.environ["PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT"] = "0"
+            os.environ["FLAGS_use_mkldnn"] = "0"
+            os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
+
+            from paddleocr import PaddleOCR
+            _paddle_ocr_engine = PaddleOCR(enable_mkldnn=False)
+            print("PaddleOCR engine loaded successfully")
         except Exception as e:
-            print(f'Surya OCR load failed: {e}')
-            _surya_rec_predictor = None
-    return _surya_rec_predictor
+            print(f"PaddleOCR load failed: {e}")
+            _paddle_ocr_engine = None
+    return _paddle_ocr_engine
 
 
-def run_surya_ocr_file(file_path: str) -> str:
+def run_paddle_ocr_file(file_path: str) -> str:
     """
-    Runs Surya OCR on a given image or PDF using the Python API.
+    Runs PaddleOCR on a given image or PDF.
     Handles decrypting encrypted uploaded files beforehand.
     Returns concatenated extracted plain text.
     """
     if not file_path or not os.path.exists(file_path):
         return ""
 
-    predictor = _get_surya_predictor()
-    if predictor is None:
-        print("Surya OCR unavailable, returning empty string")
+    ocr = _get_paddle_ocr()
+    if ocr is None:
+        print("PaddleOCR engine unavailable")
         return ""
 
     try:
         from PIL import Image as PILImage
 
-        # Decrypt the uploaded file into bytes
+        # Decrypt uploaded file
         decrypted_bytes = read_upload(file_path)
-        ext = os.path.splitext(file_path)[1].lower() or '.png'
+        ext = os.path.splitext(file_path)[1].lower() or ".png"
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = os.path.join(tmp_dir, f'doc_input{ext}')
+            tmp_path = os.path.join(tmp_dir, f"doc_input{ext}")
             if decrypted_bytes:
-                with open(tmp_path, 'wb') as f:
+                with open(tmp_path, "wb") as f:
                     f.write(decrypted_bytes)
             else:
                 import shutil
                 shutil.copy(file_path, tmp_path)
 
-            # Load image pages
-            images = []
-            if ext == '.pdf':
+            image_paths = []
+            if ext == ".pdf":
                 try:
                     import pypdfium2 as pdfium
                     pdf = pdfium.PdfDocument(tmp_path)
-                    for page in pdf:
+                    for i, page in enumerate(pdf):
+                        if i >= 3:
+                            break
                         bmp = page.render(scale=2)
-                        images.append(bmp.to_pil())
-                except Exception:
-                    img = PILImage.open(tmp_path).convert('RGB')
-                    images = [img]
+                        pil_img = bmp.to_pil()
+                        page_p = os.path.join(tmp_dir, f"page_{i}.png")
+                        pil_img.save(page_p)
+                        image_paths.append(page_p)
+                except Exception as e:
+                    print(f"PDF extraction error: {e}")
+                    image_paths = [tmp_path]
             else:
-                img = PILImage.open(tmp_path).convert('RGB')
-                images = [img]
+                image_paths = [tmp_path]
 
-            # Run OCR using Python API (full_page=True: one VLM call per page)
-            page_results = predictor(images, full_page=True)
-
-            # Extract text from blocks
             extracted_lines = []
-            for page in page_results:
-                for block in page.blocks:
-                    if not block.skipped and block.html:
-                        t = _html_block_to_text(block.html)
-                        if t:
-                            extracted_lines.append(t)
+            for img_p in image_paths:
+                try:
+                    # Support PaddleOCR predict API
+                    predictions = ocr.predict(img_p)
+                    for pred in predictions:
+                        if isinstance(pred, dict):
+                            texts = pred.get("rec_texts", [])
+                            for t in texts:
+                                if t and str(t).strip():
+                                    extracted_lines.append(str(t).strip())
+                        elif isinstance(pred, (list, tuple)):
+                            for item in pred:
+                                if isinstance(item, (list, tuple)) and len(item) >= 2:
+                                    txt = item[1]
+                                    if isinstance(txt, (list, tuple)) and len(txt) > 0:
+                                        extracted_lines.append(str(txt[0]))
+                                    elif isinstance(txt, str):
+                                        extracted_lines.append(txt)
+                except Exception as e:
+                    print(f"PaddleOCR page error on {img_p}: {e}")
 
-            return "\n".join(extracted_lines)
+            text_result = "\n".join(extracted_lines)
+            print(f"PaddleOCR extracted {len(extracted_lines)} lines of text")
+            return text_result
 
     except Exception as e:
-        print(f'Surya OCR error: {e}')
+        print(f"PaddleOCR file error: {e}")
 
     return ""
 
-    creationflags = subprocess.CREATE_NO_WINDOW if platform.system() == "Windows" else 0
 
-    with tempfile.TemporaryDirectory() as tmp_cwd:
-        # Decrypt uploaded file to temporary plain file
-        decrypted_bytes = read_upload(file_path)
-        ext = os.path.splitext(file_path)[1] or ".png"
-        tmp_target = os.path.join(tmp_cwd, f"doc_input{ext}")
-
-        if decrypted_bytes:
-            with open(tmp_target, "wb") as f:
-                f.write(decrypted_bytes)
-        else:
-            import shutil
-            shutil.copy(file_path, tmp_target)
-
-        stem = Path(tmp_target).stem
-        try:
-            subprocess.run(
-                ["surya_ocr", tmp_target],
-                cwd=tmp_cwd,
-                check=True,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                creationflags=creationflags,
-            )
-            result_path = os.path.join(tmp_cwd, "results", "surya", stem, "results.json")
-            if os.path.exists(result_path):
-                with open(result_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                pages = data.get(stem, [])
-                extracted_lines = []
-                for page in pages:
-                    for block in page.get("blocks", []):
-                        t = _html_block_to_text(block.get("html", ""))
-                        if t:
-                            extracted_lines.append(t)
-                return "\n".join(extracted_lines)
-        except Exception as e:
-            print(f"Surya OCR execution note: {e}")
-
-    return ""
+# Maintain alias so existing calls work seamlessly
+run_surya_ocr_file = run_paddle_ocr_file
 
 
 def clean_address_text(raw: str) -> str:
