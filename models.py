@@ -2,7 +2,6 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, TypeDecorator
-from sqlalchemy.dialects.postgresql import UUID
 
 from database import Base
 from encryption import decrypt_value, encrypt_value
@@ -35,15 +34,9 @@ def _uuid():
 
 class PendingKYCSession(Base):
     """
-    Holds the submitted eKYC form data + PKCE verifier for the duration of
-    the DigiLocker OAuth redirect round-trip. The user's browser only ever
-    carries an opaque `state` value - all the real data lives here, server
-    side, so concurrent users never collide and nothing sensitive sits in
-    a cookie or query string.
-
-    Deliberately NOT the final record - once the callback completes
-    successfully, we copy the relevant fields into KYCApplication and this
-    row can be left to expire (or cleaned up by a cron/cleanup job later).
+    Holds submitted eKYC form data + PKCE verifier for the duration of
+    the DigiLocker OAuth redirect round-trip. The user's browser only
+    carries an opaque `state` token - sensitive data lives safely on server.
     """
     __tablename__ = "pending_kyc_sessions"
 
@@ -52,134 +45,147 @@ class PendingKYCSession(Base):
     code_verifier = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # kyc_source distinguishes which flow this pending session belongs to,
-    # e.g. "eKYC" (individual) - keeps room to reuse this table for vendor
-    # flows later without a schema change.
     kyc_source = Column(String, default="eKYC")
 
-    # ── Form fields captured on /submit-ekyc, before DigiLocker redirect ──
+    # Form fields captured on /submit-ekyc before DigiLocker redirect
     full_name = Column(EncryptedString)
     dob = Column(EncryptedString)
-    nationality = Column(String)
+    nationality = Column(String, default="Indian")
     gender = Column(String)
-    marital_status = Column(String)
 
     mobile = Column(EncryptedString)
     email = Column(EncryptedString)
-    alternate_contact = Column(EncryptedString)
 
+    # Permanent Address
     perm_address_line1 = Column(EncryptedString)
     perm_address_line2 = Column(EncryptedString)
     perm_city = Column(String)
     perm_state = Column(String)
     perm_pin = Column(EncryptedString)
-    perm_country = Column(String)
+    perm_country = Column(String, default="India")
 
+    # Current Address
     same_address = Column(Boolean, default=True)
     curr_address_line1 = Column(EncryptedString)
     curr_address_line2 = Column(EncryptedString)
     curr_city = Column(String)
     curr_state = Column(String)
     curr_pin = Column(EncryptedString)
-    curr_country = Column(String)
+    curr_country = Column(String, default="India")
 
     id_type = Column(String)
     id_number = Column(EncryptedString)
-    aadhaar_linked_mobile = Column(EncryptedString)
-    dl_expiry_date = Column(String)
 
+    # AML / Profile fields
     occupation = Column(String)
     annual_income = Column(EncryptedString)
     source_of_funds = Column(String)
-    pep_status = Column(String)
-    account_purpose = Column(Text)
+    pep_status = Column(String, default="No")
 
-    # Paths to uploaded files on disk (see storage.py) - not the files
-    # themselves; keeps the DB row small.
+    # File paths on disk
     id_proof_front_path = Column(String)
     id_proof_back_path = Column(String)
-    address_proof_path = Column(String)
-    income_proof_path = Column(String)
-    selfie_path = Column(String)
-    signature_path = Column(String)
+    address_proof_path = Column(String)           # Permanent address proof (e.g. Aadhaar back)
+    current_address_proof_path = Column(String)   # Utility bill / bank statement if different
+    selfie_path = Column(String)                  # Live webcam selfie
+    signature_path = Column(String)               # Digital signature capture
 
 
 class KYCApplication(Base):
     """
-    Final, completed KYC record - created once the DigiLocker callback has
-    run successfully and the identity cross-check + risk score have been
-    computed. This is what /results/{id} renders via results.html.
+    Final, completed KYC record created once DigiLocker callback has
+    completed and biometric face match + address cross-checks are computed.
+    Rendered on /results/{id}.
     """
     __tablename__ = "kyc_applications"
 
     id = Column(String, primary_key=True, default=_uuid)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    kyc_source = Column(String, default="eKYC")  # "eKYC" / "Offline KYC" / "Vendor eKYC" / etc.
+    kyc_source = Column(String, default="eKYC")
     status = Column(String, default="review")     # "approved" / "review" / "rejected"
 
-    # ── As submitted on the form ──
+    # Applicant profile
     full_name = Column(EncryptedString)
     dob = Column(EncryptedString)
-    nationality = Column(String)
+    nationality = Column(String, default="Indian")
     gender = Column(String)
-    mobile = Column(EncryptedString, index=False)  # Can't index encrypted columns
+    mobile = Column(EncryptedString, index=False)
     email = Column(EncryptedString, index=False)
 
+    # Permanent Address
     perm_address_line1 = Column(EncryptedString)
     perm_address_line2 = Column(EncryptedString)
     perm_city = Column(String)
     perm_state = Column(String)
     perm_pin = Column(EncryptedString)
-    perm_country = Column(String)
+    perm_country = Column(String, default="India")
+
+    # Current Address
+    same_address = Column(Boolean, default=True)
+    curr_address_line1 = Column(EncryptedString)
+    curr_address_line2 = Column(EncryptedString)
+    curr_city = Column(String)
+    curr_state = Column(String)
+    curr_pin = Column(EncryptedString)
+    curr_country = Column(String, default="India")
 
     id_type = Column(String)
-    id_number = Column(EncryptedString, index=False)  # Can't index encrypted columns
-    aadhaar_linked_mobile = Column(EncryptedString)
+    id_number = Column(EncryptedString, index=False)
 
     occupation = Column(String)
     annual_income = Column(EncryptedString)
     source_of_funds = Column(String)
-    pep_status = Column(String)
+    pep_status = Column(String, default="No")
 
-    # File paths carried over from the pending session
+    # File paths carried over
     id_proof_front_path = Column(String)
     id_proof_back_path = Column(String)
     address_proof_path = Column(String)
-    income_proof_path = Column(String)
+    current_address_proof_path = Column(String)
     selfie_path = Column(String)
     signature_path = Column(String)
 
-    # ── DigiLocker OAuth result (raw) ──
-    digilocker_access_token = Column(EncryptedString)  # Encrypt tokens for security
-    digilocker_id_token = Column(EncryptedString)
+    # DigiLocker response & Biometrics
     digilocker_scope = Column(String)
     digilocker_name = Column(EncryptedString)
     digilocker_dob = Column(EncryptedString)
     digilocker_gender = Column(String)
     digilocker_eaadhaar_available = Column(Boolean, default=False)
-    digilocker_doc_uri = Column(String)  # reference if/when a specific issued doc is pulled
+    digilocker_doc_uri = Column(String)
+    digilocker_photo_b64 = Column(EncryptedString)  # Official government photo
 
-    # ── Data extracted from DigiLocker / eAadhaar (what results.html calls "ocr_*") ──
+    # Data extracted from DigiLocker / MoRTH / Surya OCR
     ocr_success = Column(Boolean, default=False)
     ocr_name = Column(EncryptedString)
     ocr_dob = Column(EncryptedString)
-    ocr_aadhaar = Column(EncryptedString)  # masked - see digilocker.py
+    ocr_aadhaar = Column(EncryptedString)
     ocr_pan = Column(EncryptedString)
-    ocr_dl = Column(EncryptedString)  # from id_token's "driving_licence" claim
+    ocr_dl = Column(EncryptedString)
     ocr_address = Column(EncryptedString)
 
-    # ── Cross-check results (form vs DigiLocker data) ──
+    # Cross-check results
     name_match = Column(Boolean, nullable=True)
+    name_match_score = Column(Integer, default=0)
     dob_match = Column(Boolean, nullable=True)
-    address_match = Column(Boolean, nullable=True)
     id_number_match = Column(Boolean, nullable=True)
 
-    # ── Dedup flags ──
+    # Address checks
+    address_match = Column(Boolean, nullable=True)
+    perm_address_match = Column(Boolean, nullable=True)
+    curr_address_match = Column(Boolean, nullable=True)
+    utility_bill_date = Column(String)
+    bill_recency_valid = Column(Boolean, nullable=True)
+
+    # Biometric Face Matching
+    face_matched = Column(Boolean, nullable=True)
+    face_match_score = Column(Integer, default=0)
+
+    # Deduplication flags
     doc_dup = Column(Boolean, default=False)
     mobile_dup = Column(Boolean, default=False)
     email_dup = Column(Boolean, default=False)
 
-    # ── Risk ──
+    # Final Risk Assessment
     risk_score = Column(Integer, default=0)
-    risk_reasons = Column(Text)  # JSON-encoded list of strings
+    risk_reasons = Column(Text)

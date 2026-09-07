@@ -45,6 +45,27 @@ async def save_upload(file: UploadFile | None) -> str | None:
     return path
 
 
+def save_base64_upload(b64_data: str | None, default_ext: str = ".png") -> str | None:
+    """Save base64 data string (from canvas signature or webcam capture) with encryption."""
+    if not b64_data or len(b64_data) < 20:
+        return None
+    try:
+        import base64
+        data = b64_data
+        if "," in data:
+            data = data.split(",", 1)[1]
+        raw_bytes = base64.b64decode(data)
+        name = f"{uuid.uuid4().hex}{default_ext}"
+        path = os.path.join(UPLOAD_DIR, name)
+        encrypted_contents = encrypt_file_contents(raw_bytes)
+        with open(path, "wb") as f:
+            f.write(encrypted_contents)
+        return path
+    except Exception as e:
+        print(f"Failed to save base64 upload: {e}")
+        return None
+
+
 def read_upload(file_path: str) -> bytes | None:
     """Read and decrypt an uploaded file. Returns decrypted bytes or None if file not found."""
     if not file_path:

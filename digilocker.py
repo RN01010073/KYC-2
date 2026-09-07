@@ -42,6 +42,22 @@ BASE = "https://digilocker.meripehchaan.gov.in/public"
 AUTHORIZE_URL = f"{BASE}/oauth2/1/authorize"
 TOKEN_URL = f"{BASE}/oauth2/2/token"
 EAADHAAR_XML_URL = f"{BASE}/oauth2/3/xml/eaadhaar"
+USER_INFO_URL = f"{BASE}/oauth2/1/user"
+
+
+async def fetch_user_info(access_token: str) -> dict | None:
+    """Fetch user profile including official photo from DigiLocker /oauth2/1/user."""
+    headers = {"Authorization": f"Bearer {access_token}"}
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.get(USER_INFO_URL, headers=headers)
+            if resp.status_code == 200:
+                return resp.json()
+            print(f"⚠️ UserInfo fetch failed: {resp.status_code} — {resp.text}")
+            return None
+    except Exception as e:
+        print(f"⚠️ Error requesting UserInfo: {e}")
+        return None
 
 
 def require_config():

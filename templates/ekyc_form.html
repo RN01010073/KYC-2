@@ -381,6 +381,14 @@
           <div class="field-error" id="err-pCountry">Country is required</div>
         </div>
       </div>
+      <div class="field span2" style="margin-top:16px;">
+        <label>Permanent Address Proof <span class="opt">recommended for fallback</span></label>
+        <div class="upload-zone" id="permAddrProofZone" style="padding:16px;">
+          <div class="upload-title" style="font-size:13px;">Upload Aadhaar Back / Voter ID / DL</div>
+          <div class="upload-sub" style="font-size:11px;">Surya OCR will verify address if DigiLocker record is missing</div>
+          <input type="file" name="address_proof" accept=".pdf,.jpg,.jpeg,.png" onchange="markUploaded('permAddrProofZone')"/>
+        </div>
+      </div>
       <div class="divider"></div>
       <div class="sub-heading">Current address</div>
       <label class="checkbox-wrap" style="margin-bottom:16px;">
@@ -389,9 +397,9 @@
       </label>
       <div id="currentAddrFields" style="display:none;">
         <div class="form-grid">
-          <div class="field span2"><label>Address line 1 <span class="req">*</span></label><input type="text" placeholder="House/Flat no., Building name, Street" name="curr_address_line1"/></div>
+          <div class="field span2"><label>Address line 1 <span class="req">*</span></label><input type="text" id="currAddr1" placeholder="House/Flat no., Building name, Street" name="curr_address_line1"/><div class="field-error" id="err-currAddr1">Current address line 1 is required</div></div>
           <div class="field span2"><label>Address line 2 <span class="opt">optional</span></label><input type="text" placeholder="Area, Locality, Landmark" name="curr_address_line2"/></div>
-          <div class="field"><label>City <span class="req">*</span></label><input type="text" id="currCity" placeholder="e.g. Mumbai" name="curr_city"/></div>
+          <div class="field"><label>City <span class="req">*</span></label><input type="text" id="currCity" placeholder="e.g. Mumbai" name="curr_city"/><div class="field-error" id="err-currCity">City is required</div></div>
           <div class="field"><label>State <span class="req">*</span></label><select id="currState" name="curr_state">
   <option value="">Select state</option>
   <option>Andaman and Nicobar Islands</option>
@@ -430,11 +438,20 @@
   <option>Uttar Pradesh</option>
   <option>Uttarakhand</option>
   <option>West Bengal</option>
-</select></div>
+</select><div class="field-error" id="err-currState">State is required</div></div>
         </div>
         <div class="form-grid three" style="margin-top:16px;">
-          <div class="field"><label>PIN code <span class="req">*</span></label><input type="text" id="currPin" placeholder="e.g. 400001" maxlength="6" name="curr_pin"/></div>
+          <div class="field"><label>PIN code <span class="req">*</span></label><input type="text" id="currPin" placeholder="e.g. 400001" maxlength="6" name="curr_pin"/><div class="field-error" id="err-currPin">Valid PIN code is required</div></div>
          <div class="field"><label>Country <span class="req">*</span></label><select name="curr_country"><option>India</option><option>USA</option><option>UK</option><option>Other</option></select></div>
+        </div>
+        <div class="field span2" style="margin-top:16px;">
+          <label>Current Address Proof (Utility Bill / Bank Statement < 3 months old) <span class="req">*</span></label>
+          <div class="upload-zone" id="currAddrProofZone" style="padding:16px;">
+            <div class="upload-title" style="font-size:13px;">Upload Electricity Bill, Gas Bill, or Bank Statement</div>
+            <div class="upload-sub" style="font-size:11px;">Surya OCR will verify address match and document recency (&le; 90 days)</div>
+            <input type="file" name="current_address_proof" id="currAddrProofInput" accept=".pdf,.jpg,.jpeg,.png" onchange="markUploaded('currAddrProofZone')"/>
+          </div>
+          <div class="field-error" id="err-currAddrProof">Please upload current address proof document</div>
         </div>
       </div>
     </div>
@@ -511,6 +528,7 @@
           <button class="sig-btn" type="button" id="downloadSigBtn">Save</button>
           <label class="sig-btn" style="cursor:pointer;">Upload instead <input type="file" accept="image/*" name="signature_upload" style="display:none;" onchange="markSignatureUploaded()"/></label>
         </div>
+        <input type="hidden" name="signature_data" id="signatureDataInput" />
       </div>
       <div class="field-error" id="err-signature" style="margin-top:8px;">Please draw or upload your signature</div>
     </div>
@@ -702,6 +720,15 @@ document.addEventListener("DOMContentLoaded", function() {
       checkField('pState',   'err-pState',   'select');
       checkField('pPin',     'err-pPin',     'text');
       checkField('pCountry', 'err-pCountry', 'select');
+
+      var sameAddr = document.getElementById('sameAddr');
+      if (sameAddr && !sameAddr.checked) {
+        checkField('currAddr1', 'err-currAddr1', 'text');
+        checkField('currCity',  'err-currCity',  'text');
+        checkField('currState', 'err-currState', 'select');
+        checkField('currPin',   'err-currPin',   'text');
+        checkField('currAddrProofZone', 'err-currAddrProof', 'upload');
+      }
     }
     if (step === 4) {
       checkField('idType',   'err-idType',   'select');
@@ -749,6 +776,12 @@ document.addEventListener("DOMContentLoaded", function() {
   function changeStep(dir) {
     if (dir === 1 && !validate(currentStep)) return;
     if (dir === 1 && currentStep === totalSteps) {
+      // Serialize drawn canvas signature if present
+      var sigCanvas = document.getElementById('sigCanvas');
+      var sigDataInput = document.getElementById('signatureDataInput');
+      if (hasSignature && sigCanvas && sigDataInput) {
+        sigDataInput.value = sigCanvas.toDataURL('image/png');
+      }
       showProcessingOverlay();
       document.getElementById('ekyc-form').submit();
       return;

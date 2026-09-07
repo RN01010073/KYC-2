@@ -28,9 +28,17 @@ def delete_pending_session(db: Session, row: PendingKYCSession) -> None:
 
 
 def check_duplicates(db: Session, id_number: str | None, mobile: str | None, email: str | None) -> dict:
-    doc_dup = bool(id_number) and db.query(KYCApplication).filter(KYCApplication.id_number == id_number).first() is not None
-    mobile_dup = bool(mobile) and db.query(KYCApplication).filter(KYCApplication.mobile == mobile).first() is not None
-    email_dup = bool(email) and db.query(KYCApplication).filter(KYCApplication.email == email).first() is not None
+    """
+    Check for duplicate identity or contact numbers across all applications.
+    Since columns use Fernet non-deterministic encryption, we compare decrypted values.
+    """
+    if not (id_number or mobile or email):
+        return {"doc_dup": False, "mobile_dup": False, "email_dup": False}
+
+    all_apps = db.query(KYCApplication).all()
+    doc_dup = bool(id_number) and any(app.id_number == id_number for app in all_apps)
+    mobile_dup = bool(mobile) and any(app.mobile == mobile for app in all_apps)
+    email_dup = bool(email) and any(app.email == email for app in all_apps)
     return {"doc_dup": doc_dup, "mobile_dup": mobile_dup, "email_dup": email_dup}
 
 
@@ -46,6 +54,7 @@ def create_kyc_application(db: Session, **fields) -> KYCApplication:
 
 def get_kyc_application(db: Session, app_id: str) -> KYCApplication | None:
     return db.query(KYCApplication).filter(KYCApplication.id == app_id).first()
+
 
 def get_all_kyc_applications(db: Session):
     return db.query(KYCApplication).order_by(KYCApplication.created_at.desc()).all()

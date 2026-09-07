@@ -1,4 +1,4 @@
-﻿fastapi
+fastapi
 uvicorn[standard]
 httpx
 sqlalchemy
@@ -7,3 +7,7 @@ python-dotenv
 jinja2
 python-multipart
 cryptography
+rapidfuzz
+opencv-python-headless
+pillow
+numpy

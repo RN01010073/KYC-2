@@ -167,10 +167,19 @@
                      cursor: pointer; text-decoration: none; transition: all 0.15s; }
     .btn-secondary:hover { background: var(--bg-card); color: var(--text-primary); }
 
+    /* ── Visual Biometrics Card ── */
+    .biometric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 14px; }
+    .bio-box { background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 14px; text-align: center; }
+    .bio-box-title { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; font-weight: 500; }
+    .bio-img { width: 140px; height: 140px; object-fit: cover; border-radius: 10px; border: 1px solid var(--border-strong); background: #000; margin: 0 auto; display: block; }
+    .sig-box { background: var(--bg-surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 14px; margin-top: 14px; text-align: center; }
+    .sig-preview-img { max-height: 64px; max-width: 100%; object-fit: contain; margin: 0 auto; display: block; }
+
     @media (max-width: 600px) {
       nav { padding: 14px 20px; }
       .page-wrap { padding: 28px 16px 60px; }
       .actions { flex-direction: column; }
+      .biometric-grid { grid-template-columns: 1fr; }
       .row { flex-direction: column; align-items: flex-start; gap: 4px; }
       .row-value { text-align: left; max-width: 100%; }
       .cc-table thead th:nth-child(2),
@@ -305,6 +314,102 @@
         {% if ocr_success %}<span class="badge badge-green">Completed</span>
         {% else %}<span class="badge badge-amber">Partial / Failed</span>{% endif %}
       </span>
+    </div>
+  </div>
+
+  <!-- Biometric Verification Card -->
+  <div class="card">
+    <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Visual Identity & Biometric Verification</span>
+      {% if face_matched %}
+        <span class="badge badge-green">✓ Face Matched ({{ face_match_score }}%)</span>
+      {% elif face_match_score > 0 %}
+        <span class="badge badge-red">✗ Low Face Confidence ({{ face_match_score }}%)</span>
+      {% else %}
+        <span class="badge badge-muted">Biometrics Not Available</span>
+      {% endif %}
+    </div>
+
+    <div class="biometric-grid">
+      <div class="bio-box">
+        <div class="bio-box-title">Government Photo (DigiLocker)</div>
+        {% if digilocker_photo_b64 %}
+          <img src="data:image/jpeg;base64,{{ digilocker_photo_b64 }}" class="bio-img" alt="Official DigiLocker Photo"/>
+        {% else %}
+          <div style="height:140px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:12px;">
+            Photo not returned by DigiLocker
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="bio-box">
+        <div class="bio-box-title">Live Camera Selfie (Applicant)</div>
+        {% if selfie_url %}
+          <img src="{{ selfie_url }}" class="bio-img" alt="Applicant Live Selfie"/>
+        {% else %}
+          <div style="height:140px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:12px;">
+            No selfie uploaded
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if signature_url %}
+    <div class="sig-box">
+      <div class="bio-box-title">Captured Digital Signature</div>
+      <img src="{{ signature_url }}" class="sig-preview-img" alt="Applicant Signature"/>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Dual-Address Verification Card -->
+  <div class="card">
+    <div class="card-title">Residential Address Verification</div>
+
+    <div class="row" style="align-items:flex-start;">
+      <span class="row-label">Permanent Address</span>
+      <div style="text-align:right; max-width:65%;">
+        <div style="font-size:13px; color:var(--text-primary);">{{ form_values.address or "—" }}</div>
+        <div style="margin-top:6px;">
+          {% if perm_address_match %}
+            <span class="badge badge-green">✓ Verified via MoRTH DL / Aadhaar Back</span>
+          {% else %}
+            <span class="badge badge-amber">⚠ Unverified / Partial Match</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="align-items:flex-start;">
+      <span class="row-label">Current Address</span>
+      <div style="text-align:right; max-width:65%;">
+        {% if same_address %}
+          <div style="font-size:13px; color:var(--text-secondary);">Declared same as permanent address</div>
+          <div style="margin-top:6px;">
+            {% if perm_address_match %}
+              <span class="badge badge-green">✓ Inherited from Verified Permanent Address</span>
+            {% else %}
+              <span class="badge badge-amber">⚠ Subject to Permanent Address Verification</span>
+            {% endif %}
+          </div>
+        {% else %}
+          <div style="font-size:13px; color:var(--text-primary);">{{ form_values.curr_address or "—" }}</div>
+          <div style="margin-top:6px; display:flex; gap:6px; justify-content:flex-end; flex-wrap:wrap;">
+            {% if curr_address_match %}
+              <span class="badge badge-green">✓ Utility Bill Verified (Surya OCR)</span>
+            {% else %}
+              <span class="badge badge-red">✗ Current Address Unverified</span>
+            {% endif %}
+            {% if utility_bill_date %}
+              {% if bill_recency_valid %}
+                <span class="badge badge-green">Bill Date: {{ utility_bill_date }} (&lt; 90 days)</span>
+              {% else %}
+                <span class="badge badge-red">Bill Date: {{ utility_bill_date }} (Older than 90 days)</span>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
     </div>
   </div>
 
