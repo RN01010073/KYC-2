@@ -321,45 +321,38 @@ def verify_face(selfie_path: str | None, dl_photo_b64: str | None) -> dict:
 
 
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# 3. PADDLEOCR INTEGRATION & PARSING
+# 3. PADDLEOCR / RAPIDOCR INTEGRATION & PARSING (LOW-MEMORY ONNX RUNTIME)
 # ==============================================================================
 
-# Lazy-loaded PaddleOCR singleton
-_paddle_ocr_engine = None
+_ocr_engine = None
 
 
-def _get_paddle_ocr():
-    """Lazy-load PaddleOCR engine once and reuse across calls."""
-    global _paddle_ocr_engine
-    if _paddle_ocr_engine is None:
+def _get_ocr_engine():
+    """Lazy-load RapidOCR (PaddleOCR ONNX engine) once with low memory footprint (<100MB)."""
+    global _ocr_engine
+    if _ocr_engine is None:
         try:
-            import os
-            # Ensure stable CPU inference without oneDNN conflict
-            os.environ["PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT"] = "0"
-            os.environ["FLAGS_use_mkldnn"] = "0"
-            os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
-
-            from paddleocr import PaddleOCR
-            _paddle_ocr_engine = PaddleOCR(enable_mkldnn=False)
-            print("PaddleOCR engine loaded successfully")
+            from rapidocr_onnxruntime import RapidOCR
+            _ocr_engine = RapidOCR()
+            print("RapidOCR (PaddleOCR ONNX) loaded successfully with low memory footprint")
         except Exception as e:
-            print(f"PaddleOCR load failed: {e}")
-            _paddle_ocr_engine = None
-    return _paddle_ocr_engine
+            print(f"RapidOCR load note: {e}")
+            _ocr_engine = None
+    return _ocr_engine
 
 
 def run_paddle_ocr_file(file_path: str) -> str:
     """
-    Runs PaddleOCR on a given image or PDF.
+    Runs PaddleOCR (via lightweight ONNX engine) on a given image or PDF.
     Handles decrypting encrypted uploaded files beforehand.
-    Returns concatenated extracted plain text.
+    Returns concatenated extracted plain text within safe memory limits (<100MB).
     """
     if not file_path or not os.path.exists(file_path):
         return ""
 
-    ocr = _get_paddle_ocr()
-    if ocr is None:
-        print("PaddleOCR engine unavailable")
+    engine = _get_ocr_engine()
+    if engine is None:
+        print("OCR engine unavailable")
         return ""
 
     try:
@@ -384,7 +377,7 @@ def run_paddle_ocr_file(file_path: str) -> str:
                     import pypdfium2 as pdfium
                     pdf = pdfium.PdfDocument(tmp_path)
                     for i, page in enumerate(pdf):
-                        if i >= 3:
+                        if i >= 2:
                             break
                         bmp = page.render(scale=2)
                         pil_img = bmp.to_pil()
@@ -400,36 +393,27 @@ def run_paddle_ocr_file(file_path: str) -> str:
             extracted_lines = []
             for img_p in image_paths:
                 try:
-                    # Support PaddleOCR predict API
-                    predictions = ocr.predict(img_p)
-                    for pred in predictions:
-                        if isinstance(pred, dict):
-                            texts = pred.get("rec_texts", [])
-                            for t in texts:
-                                if t and str(t).strip():
-                                    extracted_lines.append(str(t).strip())
-                        elif isinstance(pred, (list, tuple)):
-                            for item in pred:
-                                if isinstance(item, (list, tuple)) and len(item) >= 2:
-                                    txt = item[1]
-                                    if isinstance(txt, (list, tuple)) and len(txt) > 0:
-                                        extracted_lines.append(str(txt[0]))
-                                    elif isinstance(txt, str):
-                                        extracted_lines.append(txt)
+                    res, _ = engine(img_p)
+                    if res:
+                        for line in res:
+                            if line and len(line) >= 2:
+                                txt = str(line[1]).strip()
+                                if txt:
+                                    extracted_lines.append(txt)
                 except Exception as e:
-                    print(f"PaddleOCR page error on {img_p}: {e}")
+                    print(f"OCR page error on {img_p}: {e}")
 
             text_result = "\n".join(extracted_lines)
-            print(f"PaddleOCR extracted {len(extracted_lines)} lines of text")
+            print(f"PaddleOCR (ONNX) extracted {len(extracted_lines)} lines of text")
             return text_result
 
     except Exception as e:
-        print(f"PaddleOCR file error: {e}")
+        print(f"OCR execution error: {e}")
 
     return ""
 
 
-# Maintain alias so existing calls work seamlessly
+# Maintain aliases so existing calls work seamlessly
 run_surya_ocr_file = run_paddle_ocr_file
 
 

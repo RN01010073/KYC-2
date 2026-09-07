@@ -472,35 +472,51 @@ async def digilocker_callback(request: Request, db: Session = Depends(get_db)):
         # ────────────────────────────────────────────────────────────────
 
         # 1. Name Match (Fuzzy Token-Sort)
-        name_check = verification_engine.match_names(pending.full_name, dl_name)
+        try:
+            name_check = verification_engine.match_names(pending.full_name, dl_name)
+        except Exception as e:
+            print(f"Name match note: {e}")
+            name_check = {"matched": False, "score": 0, "reason": str(e)}
 
         # 2. Biometric Face Match (Live Selfie vs DigiLocker Photo)
-        face_check = verification_engine.verify_face(pending.selfie_path, user_photo_b64)
+        try:
+            face_check = verification_engine.verify_face(pending.selfie_path, user_photo_b64)
+        except Exception as e:
+            print(f"Face verify note: {e}")
+            face_check = {"matched": False, "score": 0, "reason": str(e)}
 
-        # 3. Permanent Address Verification (DL XML or Surya OCR fallback)
-        form_perm = {
-            "perm_address_line1": pending.perm_address_line1,
-            "perm_city": pending.perm_city,
-            "perm_state": pending.perm_state,
-            "perm_pin": pending.perm_pin,
-        }
-        perm_check = verification_engine.verify_permanent_address(
-            form_perm, ocr_address, pending.address_proof_path
-        )
+        # 3. Permanent Address Verification (DL XML or PaddleOCR fallback)
+        try:
+            form_perm = {
+                "perm_address_line1": pending.perm_address_line1,
+                "perm_city": pending.perm_city,
+                "perm_state": pending.perm_state,
+                "perm_pin": pending.perm_pin,
+            }
+            perm_check = verification_engine.verify_permanent_address(
+                form_perm, ocr_address, pending.address_proof_path
+            )
+        except Exception as e:
+            print(f"Perm address verify note: {e}")
+            perm_check = {"matched": False, "score": 0, "source": "None", "verified_address": None, "reason": str(e)}
 
-        # 4. Current Address Verification (Same as perm OR Utility Bill Surya OCR)
-        form_curr = {
-            "curr_address_line1": pending.curr_address_line1,
-            "curr_city": pending.curr_city,
-            "curr_state": pending.curr_state,
-            "curr_pin": pending.curr_pin,
-        }
-        curr_check = verification_engine.verify_current_address(
-            form_curr,
-            pending.current_address_proof_path,
-            pending.same_address,
-            perm_check["matched"]
-        )
+        # 4. Current Address Verification (Same as perm OR Utility Bill PaddleOCR)
+        try:
+            form_curr = {
+                "curr_address_line1": pending.curr_address_line1,
+                "curr_city": pending.curr_city,
+                "curr_state": pending.curr_state,
+                "curr_pin": pending.curr_pin,
+            }
+            curr_check = verification_engine.verify_current_address(
+                form_curr,
+                pending.current_address_proof_path,
+                pending.same_address,
+                perm_check.get("matched", False)
+            )
+        except Exception as e:
+            print(f"Curr address verify note: {e}")
+            curr_check = {"matched": False, "score": 0, "source": "None", "reason": str(e)}
 
         # 5. DOB & ID Cross-Checks
         dob_match = None

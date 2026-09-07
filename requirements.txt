@@ -13,5 +13,4 @@ pillow
 numpy
 pypdfium2
 requests
-paddlepaddle
-paddleocr
+rapidocr-onnxruntime
