@@ -471,6 +471,84 @@ def extract_bill_date(ocr_text: str) -> tuple[str | None, bool]:
     return None, False
 
 
+def extract_clean_address_from_ocr(raw_text: str | None) -> str:
+    """
+    Extracts and isolates the clean residential address from raw Aadhaar/document OCR.
+    - Discards UIDAI headers ('Unique Identification Authority of India', etc.).
+    - Locates the start at 'Address:' / 'To:' / 'C/O' / 'S/O' / 'W/O'.
+    - Terminates cleanly at the 6-digit PIN code line.
+    - Strips barcodes, 12-digit numbers, 'VID:', '1947', and 'uidai.gov.in'.
+    - Cleans up hyphenated line wraps (e.g. 'H-' + '190' -> 'H-190').
+    """
+    if not raw_text:
+        return ""
+
+    lines = [line.strip() for line in raw_text.splitlines() if line.strip()]
+
+    # Boilerplate patterns to drop
+    boilerplate_patterns = [
+        r"unique\s*identification\s*authority",
+        r"aadhaar",
+        r"\bvid\s*[:\-]?\s*\d+",
+        r"uidai\.gov\.in",
+        r"help.*@.*uidai",
+        r"\b1947\b",
+        r"mera\s*aadhaar",
+        r"government\s*of\s*india",
+        r"enrollment\s*(no|number)",
+        r"download\s*date",
+        r"issue\s*date",
+    ]
+
+    # Find starting line: look for 'Address:' or 'To:' or 'C/O', 'S/O', 'W/O', 'D/O'
+    start_idx = 0
+    found_start = False
+    for idx, line in enumerate(lines):
+        if re.search(r"\b(address|to\s*[:\-])\b", line, re.IGNORECASE):
+            start_idx = idx
+            found_start = True
+            break
+        elif re.search(r"\b([cswd]\s*/\s*o)\b", line, re.IGNORECASE):
+            start_idx = idx
+            found_start = True
+            break
+
+    candidate_lines = lines[start_idx:] if found_start else lines
+    cleaned_lines = []
+
+    for line in candidate_lines:
+        # Strip leading 'Address:' or 'To:' prefix from the first line
+        line_clean = re.sub(r"^(address\s*[:\-]?|to\s*[:\-]?)\s*", "", line, flags=re.IGNORECASE).strip()
+        if not line_clean:
+            continue
+
+        # Skip boilerplate headers/footers
+        if any(re.search(pat, line_clean, re.IGNORECASE) for pat in boilerplate_patterns):
+            continue
+
+        # Skip isolated 12-digit Aadhaar / barcode strings
+        if re.match(r"^\d{4}\s?\d{4}\s?\d{4}$", line_clean) or (line_clean.isdigit() and len(line_clean) >= 10):
+            continue
+
+        cleaned_lines.append(line_clean)
+
+        # Indian PIN code check (6 digits starting with 1-9)
+        # In Aadhaar cards, the PIN code marks the end of the address block
+        if re.search(r"\b[1-9][0-9]{5}\b", line_clean):
+            break
+
+    if cleaned_lines:
+        # Join lines and fix hyphenated wraps (e.g. "H-" followed by "190" -> "H-190")
+        combined = " ".join(cleaned_lines)
+        combined = re.sub(r"([A-Za-z0-9])-\s+([A-Za-z0-9])", r"\1-\2", combined)
+        combined = re.sub(r",+", ",", combined)
+        combined = re.sub(r"\s+", " ", combined)
+        combined = re.sub(r"\s*,\s*", ", ", combined)
+        return combined.strip(" ,.-")
+
+    return raw_text.strip()
+
+
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # 4. ADDRESS VERIFICATION ENGINES (Permanent & Current)
 # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -511,13 +589,15 @@ def verify_permanent_address(form_perm: dict, dl_address: str | None, uploaded_p
 
             pin_matched = bool(form_pin and ocr_pin and form_pin == ocr_pin)
             if (pin_matched and ratio >= 45) or ratio >= 65:
+                clean_extracted_addr = extract_clean_address_from_ocr(ocr_text)
                 return {
                     "matched": True,
                     "score": ratio,
                     "source": "Uploaded Address Proof (Aadhaar Back OCR)",
-                    "verified_address": ocr_text[:200],
+                    "verified_address": clean_extracted_addr,  # <--- NEW (Clean residential address)
                     "reason": f"Matched with uploaded Aadhaar proof ({ratio}%)"
                 }
+
 
     return {
         "matched": False,
